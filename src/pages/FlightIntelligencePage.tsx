@@ -9,6 +9,7 @@ import {
   Gauge,
   Cpu,
   ChevronRight,
+  ChevronLeft,
   TrendingDown,
   TrendingUp,
   AlertTriangle,
@@ -19,7 +20,10 @@ import { FlightRecord, MetarObservation, AirportActivity } from '../types';
 export const FlightIntelligencePage: React.FC = () => {
   const [flights, setFlights] = useState<FlightRecord[]>([]);
   const [datasetRecordCount, setDatasetRecordCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const [isSampled, setIsSampled] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(100);
   const [selectedFlight, setSelectedFlight] = useState<FlightRecord | null>(null);
   const [flightContext, setFlightContext] = useState<{
     origin_weather?: MetarObservation;
@@ -35,6 +39,10 @@ export const FlightIntelligencePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setPage(0);
+  }, [carrierFilter, originFilter, destFilter, statusFilter]);
+
+  useEffect(() => {
     async function loadFlights() {
       setLoading(true);
       try {
@@ -43,8 +51,11 @@ export const FlightIntelligencePage: React.FC = () => {
           origin: originFilter || undefined,
           dest: destFilter || undefined,
           status: statusFilter || undefined,
+          limit: pageSize,
+          offset: page * pageSize,
         });
         setFlights(res.flights);
+        setTotalCount(res.total_count);
         setDatasetRecordCount(res.dataset_record_count);
         setIsSampled(res.is_sampled);
         if (res.flights.length > 0 && !selectedFlight) {
@@ -57,7 +68,12 @@ export const FlightIntelligencePage: React.FC = () => {
       }
     }
     loadFlights();
-  }, [carrierFilter, originFilter, destFilter, statusFilter]);
+  }, [carrierFilter, originFilter, destFilter, statusFilter, page, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(page, totalPages - 1);
+  const rangeStart = totalCount === 0 ? 0 : currentPage * pageSize + 1;
+  const rangeEnd = currentPage * pageSize + flights.length;
 
   const handleSelectFlight = async (flight: FlightRecord) => {
     setSelectedFlight(flight);
@@ -93,10 +109,14 @@ export const FlightIntelligencePage: React.FC = () => {
           </p>
         </div>
 
-        <div className="text-xs font-mono text-slate-400">
-          {isSampled
-            ? `Showing ${flights.length} sampled records · ${datasetRecordCount.toLocaleString()} total flights`
-            : `Showing ${flights.length} sample flights`}
+        <div className="text-xs font-mono text-slate-400 text-right">
+          <div>
+            {totalCount.toLocaleString()} matching · {datasetRecordCount.toLocaleString()} total flights
+            {isSampled ? ' (sampled)' : ''}
+          </div>
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            Showing {rangeStart.toLocaleString()}–{rangeEnd.toLocaleString()}
+          </div>
         </div>
       </div>
 
@@ -257,6 +277,49 @@ export const FlightIntelligencePage: React.FC = () => {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800 text-xs font-mono text-slate-400">
+            <div className="flex items-center gap-2">
+              <span>Rows per page</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(0);
+                }}
+                className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
+              >
+                {[25, 50, 100, 250, 500].map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={currentPage <= 0 || loading}
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-slate-700 text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:border-cyan-500"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Prev</span>
+              </button>
+              <span className="text-slate-300">
+                Page {currentPage + 1} of {totalPages.toLocaleString()}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={currentPage >= totalPages - 1 || loading}
+                className="flex items-center gap-1 px-2.5 py-1 rounded border border-slate-700 text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:border-cyan-500"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 

@@ -55,12 +55,23 @@ export const api = {
     origin?: string;
     dest?: string;
     status?: string;
-  }): Promise<{ total_count: number; dataset_record_count: number; is_sampled: boolean; flights: FlightRecord[] }> {
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    total_count: number;
+    dataset_record_count: number;
+    is_sampled: boolean;
+    offset: number;
+    limit: number;
+    flights: FlightRecord[];
+  }> {
     const params = new URLSearchParams();
     if (filters?.carrier) params.set('carrier', filters.carrier);
     if (filters?.origin) params.set('origin', filters.origin);
     if (filters?.dest) params.set('dest', filters.dest);
     if (filters?.status) params.set('status', filters.status);
+    if (filters?.limit !== undefined) params.set('limit', filters.limit.toString());
+    if (filters?.offset !== undefined) params.set('offset', filters.offset.toString());
 
     const res = await fetch(`/api/flights?${params.toString()}`);
     return res.json();

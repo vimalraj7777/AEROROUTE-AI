@@ -116,7 +116,7 @@ export const SystemHealthPage: React.FC = () => {
           <div className="text-[11px] text-slate-500">
             {health.subsystems.bts_flight_dataset?.sampled
               ? `${Number(health.subsystems.bts_flight_dataset?.sample_records ?? 0).toLocaleString()} sample rows · ${health.subsystems.bts_flight_dataset?.source}`
-              : 'Bundled historical sample records'}
+              : `${Number(health.subsystems.bts_flight_dataset?.sample_records ?? 0).toLocaleString()} records loaded · ${health.subsystems.bts_flight_dataset?.source}`}
           </div>
         </div>
 

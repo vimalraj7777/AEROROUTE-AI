@@ -1,5 +1,6 @@
 import argparse
 import csv
+import gzip
 import json
 import random
 import re
@@ -191,7 +192,7 @@ def load_airport_filter(path: Path) -> set[str]:
 def process_file(
     source: Path,
     sample: list[dict[str, Any]],
-    sample_limit: int,
+    sample_limit: int | None,
     rng: random.Random,
     counts: Counter[str],
     bucket_counts: list[int],
@@ -232,9 +233,11 @@ def process_file(
             carrier_stats[carrier][1] += int(flight["arr_delay"] <= 0 and not flight["cancelled"])
             carrier_stats[carrier][2] += flight["arr_delay"]
 
-            if len(sample) < sample_limit:
+            if sample_limit is None:
                 sample.append(flight)
-            elif sample_limit:
+            elif len(sample) < sample_limit:
+                sample.append(flight)
+            else:
                 index = rng.randrange(counts["flights"])
                 if index < sample_limit:
                     sample[index] = flight
@@ -249,11 +252,19 @@ def write_json(path: Path, value: Any) -> None:
     temporary.replace(path)
 
 
+def write_gzip_json(path: Path, value: Any) -> None:
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with gzip.open(temporary, "wt", encoding="utf-8", newline="\n") as output:
+        json.dump(value, output, separators=(",", ":"), ensure_ascii=False)
+        output.write("\n")
+    temporary.replace(path)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Stream airline on-time CSV files (Kaggle Airline Delay Analysis or U.S. DOT BTS) "
-            "into a compact sample and full-dataset analytics."
+            "into a compact sample (or full dataset) plus full-dataset analytics."
         )
     )
     parser.add_argument("source", type=Path, help="Extracted directory containing yearly CSV files")
@@ -271,9 +282,14 @@ def main() -> int:
         default=None,
         help="Optional JSON list of airport IATA codes to keep (origin AND dest must be in the set)",
     )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Write every filtered record to a gzipped {prefix}_flights.json.gz instead of a sample",
+    )
     args = parser.parse_args()
 
-    if args.sample_size < 1:
+    if not args.full and args.sample_size < 1:
         parser.error("--sample-size must be greater than zero")
     if not re.fullmatch(r"[A-Za-z0-9_-]+", args.prefix):
         parser.error("--prefix may only contain letters, digits, hyphens and underscores")
@@ -303,6 +319,7 @@ def main() -> int:
     carrier_stats: dict[str, list[int]] = {}
     row_number = 0
     rng = random.Random(20261008)
+    sample_limit = None if args.full else args.sample_size
 
     try:
         for index, source in enumerate(files, start=1):
@@ -310,7 +327,7 @@ def main() -> int:
             row_number = process_file(
                 source,
                 sample,
-                args.sample_size,
+                sample_limit,
                 rng,
                 counts,
                 bucket_counts,
@@ -347,16 +364,25 @@ def main() -> int:
         "invalid_rows": counts["invalid_rows"],
         "filtered_rows": counts.get("filtered_rows", 0),
         "sampled_flights": len(sample),
+        "is_full_dataset": args.full,
         "delay_buckets": BUCKETS,
         "carrier_performance": carriers,
     }
 
-    write_json(args.output_dir / f"{args.prefix}_flight_sample.json", sample)
     write_json(args.output_dir / f"{args.prefix}_flight_summary.json", summary)
-    print(
-        f"Imported {counts['flights']:,} flights from {len(files)} files; "
-        f"saved {len(sample):,} searchable sample rows and full-dataset analytics."
-    )
+    if args.full:
+        record_path = args.output_dir / f"{args.prefix}_flights.json.gz"
+        write_gzip_json(record_path, sample)
+        print(
+            f"Imported {counts['flights']:,} flights from {len(files)} files; "
+            f"saved the full dataset ({len(sample):,} rows) to {record_path.name}."
+        )
+    else:
+        write_json(args.output_dir / f"{args.prefix}_flight_sample.json", sample)
+        print(
+            f"Imported {counts['flights']:,} flights from {len(files)} files; "
+            f"saved {len(sample):,} searchable sample rows and full-dataset analytics."
+        )
     return 0
 
 

@@ -107,22 +107,35 @@ app.get('/api/congestion/:code', (req, res) => {
   res.json(act);
 });
 
-// Flights Search & Detail
+// Flights Search & Detail (paginated)
 app.get('/api/flights', (req, res) => {
-  const { carrier, origin, dest, status, severity } = req.query;
-  const flights = dataService.getFlights({
-    carrier: carrier as string,
-    origin: origin as string,
-    dest: dest as string,
-    status: status as string,
-    severity: severity !== undefined ? Number(severity) : undefined,
-  });
+  const { carrier, origin, dest, status, severity, limit, offset } = req.query;
+  const summary = dataService.getFlightSummary();
+
+  const rawLimit = Number(limit);
+  const pageLimit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 500) : 50;
+  const rawOffset = Number(offset);
+  const pageOffset = Number.isFinite(rawOffset) && rawOffset > 0 ? Math.floor(rawOffset) : 0;
+
+  const page = dataService.getFlightPage(
+    {
+      carrier: carrier as string,
+      origin: origin as string,
+      dest: dest as string,
+      status: status as string,
+      severity: severity !== undefined ? Number(severity) : undefined,
+    },
+    pageOffset,
+    pageLimit
+  );
 
   res.json({
-    total_count: flights.length,
-    dataset_record_count: dataService.getFlightSummary()?.total_flights ?? flights.length,
-    is_sampled: Boolean(dataService.getFlightSummary()),
-    flights,
+    total_count: page.total,
+    dataset_record_count: summary?.total_flights ?? dataService.getFlights().length,
+    is_sampled: Boolean(summary && !summary.is_full_dataset),
+    offset: page.offset,
+    limit: page.limit,
+    flights: page.items,
   });
 });
 
@@ -299,7 +312,7 @@ app.get('/api/system/health', (req, res) => {
         status: isDataReady ? 'OPERATIONAL' : 'UNAVAILABLE',
         records: dataService.getFlightSummary()?.total_flights ?? dataService.getFlights().length,
         sample_records: dataService.getFlights().length,
-        sampled: Boolean(dataService.getFlightSummary()),
+        sampled: Boolean(dataService.getFlightSummary() && !dataService.getFlightSummary()?.is_full_dataset),
         source: dataService.getFlightSummary()?.source ?? 'Bundled historical sample',
       },
       metar_snapshot: {

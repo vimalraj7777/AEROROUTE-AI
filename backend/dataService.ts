@@ -1,21 +1,34 @@
 import fs from 'fs';
 import path from 'path';
+import zlib from 'zlib';
 import { Airport, MetarObservation, FlightRecord, AirportActivity, GraphNode, GraphEdge } from './types';
 import { addLog } from './logger';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const MODELS_DIR = path.resolve(process.cwd(), 'models');
 
+function readJsonFile(filePath: string): any {
+  if (filePath.endsWith('.gz')) {
+    return JSON.parse(zlib.gunzipSync(fs.readFileSync(filePath)).toString('utf-8'));
+  }
+  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+}
+
 class DataService {
   private airports: Airport[] = [];
   private metarObservations: MetarObservation[] = [];
   private flights: FlightRecord[] = [];
+  private flightIndex: Map<string, FlightRecord> = new Map();
   private flightSummary: {
     total_flights: number;
     sampled_flights: number;
     delay_buckets: { label: string; count: number; color: string }[];
     carrier_performance: { carrier: string; total: number; onTimePct: number; avgDelayMin: number }[];
     source: string;
+    is_full_dataset?: boolean;
+    filtered_rows?: number;
+    invalid_rows?: number;
+    source_files?: string[];
   } | null = null;
   private airportActivity: AirportActivity[] = [];
   private graphNodes: Record<string, GraphNode> = {};
@@ -50,24 +63,37 @@ class DataService {
 
       const processedDir = path.join(DATA_DIR, 'processed');
       const useBtsDataset = process.env.AEROROUTE_USE_DEMO_DATA !== 'true';
+      const btsFullGzPath = path.join(processedDir, 'bts_flights.json.gz');
+      const btsFullPath = path.join(processedDir, 'bts_flights.json');
       const btsSamplePath = path.join(processedDir, 'bts_flight_sample.json');
       const btsSummaryPath = path.join(processedDir, 'bts_flight_summary.json');
       const kaggleSamplePath = path.join(processedDir, 'kaggle_flight_sample.json');
       const kaggleSummaryPath = path.join(processedDir, 'kaggle_flight_summary.json');
       const useKaggleDataset = process.env.AEROROUTE_USE_KAGGLE_DATA === 'true';
 
-      if (useBtsDataset && fs.existsSync(btsSamplePath) && fs.existsSync(btsSummaryPath)) {
-        this.flights = JSON.parse(fs.readFileSync(btsSamplePath, 'utf-8'));
-        this.flightSummary = JSON.parse(fs.readFileSync(btsSummaryPath, 'utf-8'));
+      const btsRecordsPath = fs.existsSync(btsFullGzPath)
+        ? btsFullGzPath
+        : fs.existsSync(btsFullPath)
+        ? btsFullPath
+        : fs.existsSync(btsSamplePath)
+        ? btsSamplePath
+        : null;
+
+      if (useBtsDataset && btsRecordsPath && fs.existsSync(btsSummaryPath)) {
+        this.flights = readJsonFile(btsRecordsPath);
+        this.flightSummary = readJsonFile(btsSummaryPath);
+        this.buildFlightIndex();
         addLog(
           'INFO',
           'DATABASE',
-          `Loaded processed BTS dataset: ${this.flightSummary?.total_flights ?? 0} total flights, ${this.flights.length} searchable records.`
+          `Loaded processed BTS dataset: ${this.flightSummary?.total_flights ?? 0} total flights, ${this.flights.length} records served.`
         );
       } else if (useBtsDataset && useKaggleDataset && fs.existsSync(kaggleSamplePath) && fs.existsSync(kaggleSummaryPath)) {
-        this.flights = JSON.parse(fs.readFileSync(kaggleSamplePath, 'utf-8'));
-        this.flightSummary = JSON.parse(fs.readFileSync(kaggleSummaryPath, 'utf-8'));
+        this.flights = readJsonFile(kaggleSamplePath);
+        this.flightSummary = readJsonFile(kaggleSummaryPath);
+        this.buildFlightIndex();
       } else {
+        this.buildFlightIndex();
         addLog('INFO', 'DATABASE', 'Using bundled demo flight records. Run scripts/import_kaggle_flights.py to load the real BTS dataset.');
       }
 
@@ -119,6 +145,14 @@ class DataService {
     }
   }
 
+  private buildFlightIndex(): void {
+    this.flightIndex = new Map(
+      this.flights
+        .filter((f): f is FlightRecord & { record_id: string } => Boolean(f.record_id))
+        .map((f) => [f.record_id, f])
+    );
+  }
+
   public getAirports(): Airport[] {
     return this.airports;
   }
@@ -153,9 +187,40 @@ class DataService {
     status?: string;
     severity?: number;
   }): FlightRecord[] {
-    let list = this.flights;
-    if (!params) return list;
+    if (!params) return this.flights;
+    return this.filterFlights(params);
+  }
 
+  public getFlightPage(
+    params: {
+      carrier?: string;
+      origin?: string;
+      dest?: string;
+      status?: string;
+      severity?: number;
+    },
+    offset: number,
+    limit: number
+  ): { total: number; offset: number; limit: number; items: FlightRecord[] } {
+    const filtered = this.filterFlights(params);
+    const safeOffset = Math.max(0, offset);
+    const safeLimit = Math.max(1, limit);
+    return {
+      total: filtered.length,
+      offset: safeOffset,
+      limit: safeLimit,
+      items: filtered.slice(safeOffset, safeOffset + safeLimit),
+    };
+  }
+
+  private filterFlights(params: {
+    carrier?: string;
+    origin?: string;
+    dest?: string;
+    status?: string;
+    severity?: number;
+  }): FlightRecord[] {
+    let list = this.flights;
     if (params.carrier) {
       list = list.filter((f) => f.carrier.toUpperCase() === params.carrier!.toUpperCase());
     }
@@ -175,7 +240,7 @@ class DataService {
   }
 
   public getFlightByRecordId(recordId: string): FlightRecord | undefined {
-    return this.flights.find((flight) => flight.record_id === recordId);
+    return this.flightIndex.get(recordId);
   }
 
   public getFlightSummary() {
