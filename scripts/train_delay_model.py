@@ -58,9 +58,13 @@ FEATURES = [
     "carrier_nas_rate",
     "carrier_late_aircraft_rate",
     "route_delay_rate",
+    "origin_hour_delay_rate",
+    "carrier_origin_delay_rate",
     "departure_hour_utc",
+    "local_departure_hour",
     "day_of_week",
     "scheduled_distance_nm",
+    "scheduled_elapsed_hours",
     "origin_weather_risk",
     "dest_weather_risk",
     "origin_congestion_index",
@@ -68,6 +72,26 @@ FEATURES = [
     "origin_ifr_rate",
     "dest_ifr_rate",
 ]
+
+# Target-encoding configuration. Rate features are computed out-of-fold on the
+# training split (so a row never sees its own target) and with add-alpha
+# smoothing toward the global prior to stabilise sparse groups.
+RATE_FEATURES = {
+    "origin_delay_rate": ["origin"],
+    "dest_delay_rate": ["dest"],
+    "carrier_delay_rate": ["carrier"],
+    "route_delay_rate": ["origin", "dest"],
+    "origin_hour_delay_rate": ["origin", "departure_hour_utc"],
+    "carrier_origin_delay_rate": ["carrier", "origin"],
+}
+CAUSE_FEATURES = {
+    "carrier_weather_rate": "WeatherDelay",
+    "carrier_nas_rate": "NASDelay",
+    "carrier_late_aircraft_rate": "LateAircraftDelay",
+}
+ENCODE_ALPHA_RATE = 20.0
+ENCODE_ALPHA_CAUSE = 50.0
+OOF_FOLDS = 5
 
 CARRIER_NAMES = {
     "AA": "American Airlines", "AS": "Alaska Airlines", "B6": "JetBlue Airways",
@@ -130,7 +154,7 @@ def load_flights(csv_path: Path, sample_rows: int) -> pd.DataFrame:
         "FlightDate", "DayOfWeek", "Reporting_Airline", "IATA_CODE_Reporting_Airline",
         "Flight_Number_Reporting_Airline", "Origin", "OriginCityName", "Dest", "DestCityName",
         "CRSDepTime", "CRSArrTime", "DepDelay", "ArrDelay", "ArrDelayMinutes",
-        "Cancelled", "Diverted", "AirTime", "Distance",
+        "Cancelled", "Diverted", "AirTime", "Distance", "CRSElapsedTime",
         "CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay",
     ]
     log(f"Reading flights: {csv_path.name}")
@@ -209,8 +233,13 @@ def enrich_flights(df: pd.DataFrame, airports: list[dict], weather: pd.DataFrame
     df["dest_weather_risk"] = df["dest_weather_risk"].fillna(df["dest"].map(station_mean)).fillna(global_weather)
 
     df["departure_hour_utc"] = df["dep_utc"].dt.hour.fillna(dep_hour).astype(int)
+    df["local_departure_hour"] = dep_hour.astype(int)
     df["day_of_week"] = pd.to_numeric(df["DayOfWeek"], errors="coerce").fillna(1).astype(int)
     df["scheduled_distance_nm"] = pd.to_numeric(df["Distance"], errors="coerce").fillna(0.0)
+    elapsed_minutes = pd.to_numeric(df["CRSElapsedTime"], errors="coerce") if "CRSElapsedTime" in df else pd.Series(np.nan, index=df.index)
+    df["scheduled_elapsed_hours"] = (elapsed_minutes / 60.0).fillna(
+        df["scheduled_distance_nm"] / 450.0 + 0.4
+    ).round(3)
 
     arr_delay = pd.to_numeric(df["ArrDelay"], errors="coerce")
     cancelled = pd.to_numeric(df["Cancelled"], errors="coerce").fillna(0).astype(int)
@@ -230,49 +259,79 @@ def enrich_flights(df: pd.DataFrame, airports: list[dict], weather: pd.DataFrame
     return df.reset_index(drop=True)
 
 
-def build_rate_features(train: pd.DataFrame, full: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
+def _key_series(df: pd.DataFrame, cols: list[str]) -> pd.Series:
+    key = df[cols[0]].astype(str)
+    for column in cols[1:]:
+        key = key + "|" + df[column].astype(str)
+    return key
+
+
+def _smoothed_lookup(keys: pd.Series, target: pd.Series, alpha: float) -> tuple[dict[str, float], float]:
+    values = pd.to_numeric(target, errors="coerce").fillna(0.0).clip(lower=0.0)
+    prior = float(values.mean()) if len(values) else 0.0
+    frame = pd.DataFrame({"_k": keys.to_numpy(), "_t": values.to_numpy()})
+    stats = frame.groupby("_k")["_t"].agg(["sum", "count"])
+    smoothed = (stats["sum"] + prior * alpha) / (stats["count"] + alpha)
+    return {str(k): round(float(v), 4) for k, v in smoothed.items()}, prior
+
+
+def _oof_encode(
+    train: pd.DataFrame, keys: pd.Series, target: pd.Series, alpha: float, seed: int = 42
+) -> tuple[np.ndarray, dict[str, float], float]:
+    """Out-of-fold smoothed target encoding.
+
+    Training rows receive a value computed without their own fold so the model
+    cannot memorise its own label; the returned full-train lookup is what the
+    Node inference engine consumes and what the test rows are mapped through.
+    """
+    from sklearn.model_selection import KFold
+
+    oof = np.zeros(len(train), dtype=float)
+    kf = KFold(n_splits=OOF_FOLDS, shuffle=True, random_state=seed)
+    for tr, va in kf.split(np.arange(len(train))):
+        fold_lookup, prior = _smoothed_lookup(keys.iloc[tr], target.iloc[tr], alpha)
+        oof[va] = keys.iloc[va].map(fold_lookup).fillna(prior).to_numpy()
+    full_lookup, prior_full = _smoothed_lookup(keys, target, alpha)
+    return oof, full_lookup, prior_full
+
+
+def build_rate_features(
+    train: pd.DataFrame, test: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+    train = train.copy()
+    test = test.copy()
+    lookup: dict[str, Any] = {}
+
     global_rate = float(round(train["arr_delay"].clip(lower=0).mean(), 3))
+    lookup["global_delay_rate"] = global_rate
 
-    def mean_by(column: str) -> dict[str, float]:
-        return (
-            train.groupby(column)["arr_delay"].apply(lambda s: s.clip(lower=0).mean()).round(3).to_dict()
-        )
+    for feature, cols in RATE_FEATURES.items():
+        keys_train = _key_series(train, cols)
+        keys_test = _key_series(test, cols)
+        oof, full_lookup, prior = _oof_encode(train, keys_train, train["arr_delay"], ENCODE_ALPHA_RATE)
+        train[feature] = oof
+        test[feature] = keys_test.map(full_lookup).fillna(prior).to_numpy()
+        lookup[feature] = full_lookup
 
-    def mean_cause(column: str) -> dict[str, float]:
-        return train.groupby("carrier")[column].mean().round(3).to_dict()
+    for feature, cause_col in CAUSE_FEATURES.items():
+        if cause_col not in train.columns:
+            train[feature] = 0.0
+            test[feature] = 0.0
+            lookup[feature] = {}
+            continue
+        keys_train = train["carrier"].astype(str)
+        keys_test = test["carrier"].astype(str)
+        oof, full_lookup, prior = _oof_encode(train, keys_train, train[cause_col], ENCODE_ALPHA_CAUSE)
+        train[feature] = oof
+        test[feature] = keys_test.map(full_lookup).fillna(prior).to_numpy()
+        lookup[feature] = full_lookup
 
-    origin_rate = mean_by("origin")
-    dest_rate = mean_by("dest")
-    carrier_rate = mean_by("carrier")
-    carrier_weather = mean_cause("WeatherDelay")
-    carrier_nas = mean_cause("NASDelay")
-    carrier_late = mean_cause("LateAircraftDelay")
-
-    train_pair = train.assign(_pair=train["origin"] + "|" + train["dest"])
-    full_pair = full.assign(_pair=full["origin"] + "|" + full["dest"])
-    pair_rate = (
-        train_pair.groupby("_pair")["arr_delay"].apply(lambda s: s.clip(lower=0).mean()).round(3).to_dict()
-    )
-
-    out = full.copy()
-    out["origin_delay_rate"] = out["origin"].map(origin_rate).fillna(global_rate)
-    out["dest_delay_rate"] = out["dest"].map(dest_rate).fillna(global_rate)
-    out["carrier_delay_rate"] = out["carrier"].map(carrier_rate).fillna(global_rate)
-    out["carrier_weather_rate"] = out["carrier"].map(carrier_weather).fillna(0.0)
-    out["carrier_nas_rate"] = out["carrier"].map(carrier_nas).fillna(0.0)
-    out["carrier_late_aircraft_rate"] = out["carrier"].map(carrier_late).fillna(0.0)
-    out["route_delay_rate"] = full_pair["_pair"].map(pair_rate).fillna(global_rate)
-    lookup = {
-        "global_delay_rate": global_rate,
-        "origin_delay_rate": {k: float(v) for k, v in origin_rate.items()},
-        "dest_delay_rate": {k: float(v) for k, v in dest_rate.items()},
-        "carrier_delay_rate": {k: float(v) for k, v in carrier_rate.items()},
-        "carrier_weather_rate": {k: float(v) for k, v in carrier_weather.items()},
-        "carrier_nas_rate": {k: float(v) for k, v in carrier_nas.items()},
-        "carrier_late_aircraft_rate": {k: float(v) for k, v in carrier_late.items()},
-        "route_delay_rate": {k: float(v) for k, v in pair_rate.items()},
+    elapsed_key = _key_series(train, ["origin", "dest"])
+    lookup["route_elapsed_hours"] = {
+        str(k): round(float(v), 3)
+        for k, v in train.assign(_k=elapsed_key).groupby("_k")["scheduled_elapsed_hours"].mean().items()
     }
-    return out, lookup
+    return train, test, lookup
 
 
 def export_xgb_json(model: Any, path: Path) -> dict:
@@ -284,6 +343,7 @@ def export_xgb_json(model: Any, path: Path) -> dict:
     """
     booster = model.get_booster()
     native_tmp = path.parent / f"{path.stem}.native.json"
+    native_tmp.parent.mkdir(parents=True, exist_ok=True)
     booster.save_model(str(native_tmp))
     try:
         native = json.loads(native_tmp.read_text(encoding="utf-8"))
@@ -383,7 +443,15 @@ def main() -> int:
     parser.add_argument("--sample-rows", type=int, default=0, help="Random row cap (0 = all)")
     parser.add_argument("--test-size", type=float, default=0.2)
     parser.add_argument("--models-dir", default=str(DEFAULT_MODELS_DIR))
-    parser.add_argument("--all-airports", action="store_true", help="Train on all US airports instead of only network hubs")
+    parser.add_argument("--all-airports", dest="all_airports", action="store_true", default=True,
+                        help="Train on all US airports (default)")
+    parser.add_argument("--hubs-only", dest="all_airports", action="store_false",
+                        help="Restrict training to the 24 network hubs")
+    parser.add_argument("--tune-iter", type=int, default=16,
+                        help="RandomizedSearch candidates per model (0 = skip tuning)")
+    parser.add_argument("--tune-rows", type=int, default=120000,
+                        help="Row cap used for the hyperparameter search")
+    parser.add_argument("--cv", type=int, default=3, help="Cross-validation folds for tuning")
     args = parser.parse_args()
 
     models_dir = Path(args.models_dir)
@@ -440,8 +508,7 @@ def main() -> int:
     train_df = train_df.reset_index(drop=True)
     test_df = test_df.reset_index(drop=True)
 
-    train_df, lookup = build_rate_features(train_df, train_df)
-    test_df, _ = build_rate_features(train_df, test_df)
+    train_df, test_df, lookup = build_rate_features(train_df, test_df)
 
     X_train = train_df[FEATURES].astype(float).to_numpy()
     y_train = train_df["delay_severity_class"].to_numpy()
@@ -449,23 +516,74 @@ def main() -> int:
     y_test = test_df["delay_severity_class"].to_numpy()
     log(f"Train: {X_train.shape[0]:,} rows | Test: {X_test.shape[0]:,} rows | Features: {len(FEATURES)}")
 
-    log("Training XGBoost (gradient-boosted trees)...")
-    xgb = XGBClassifier(
-        n_estimators=300, max_depth=7, learning_rate=0.08, subsample=0.85,
-        colsample_bytree=0.85, min_child_weight=4, reg_lambda=1.5,
-        objective="multi:softprob", num_class=len(CLASSES),
-        tree_method="hist", eval_metric="mlogloss", n_jobs=-1, random_state=42,
-    )
     # Mild (square-root) class weighting: improves minority-class recall without
     # sacrificing too much overall accuracy on the dominant on-time class.
     class_weights = compute_sample_weight("balanced", y_train) ** 0.5
+
+    from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
+
+    tune_rows = args.tune_rows if (args.tune_iter > 0 and args.tune_rows) else 0
+    if tune_rows and X_train.shape[0] > tune_rows:
+        X_tune, _, y_tune, _, w_tune, _ = train_test_split(
+            X_train, y_train, class_weights, train_size=tune_rows,
+            random_state=42, stratify=y_train,
+        )
+    else:
+        X_tune, y_tune, w_tune = X_train, y_train, class_weights
+    log(f"Hyperparameter search sample: {X_tune.shape[0]:,} rows")
+    cv = StratifiedKFold(n_splits=args.cv, shuffle=True, random_state=42)
+
+    xgb_base = dict(
+        objective="multi:softprob", num_class=len(CLASSES),
+        tree_method="hist", eval_metric="mlogloss", n_jobs=-1, random_state=42,
+    )
+    xgb_params = dict(n_estimators=400, max_depth=7, learning_rate=0.06, subsample=0.85,
+                      colsample_bytree=0.8, min_child_weight=4, reg_lambda=2.0, reg_alpha=0.5)
+    if args.tune_iter > 0:
+        xgb_space = {
+            "n_estimators": [300, 450, 600, 800],
+            "max_depth": [5, 6, 7, 8, 10],
+            "learning_rate": [0.03, 0.05, 0.08, 0.12],
+            "subsample": [0.7, 0.85, 1.0],
+            "colsample_bytree": [0.6, 0.8, 1.0],
+            "min_child_weight": [1, 3, 6, 10],
+            "reg_lambda": [1.0, 2.0, 4.0, 8.0],
+            "reg_alpha": [0.0, 0.5, 1.0],
+        }
+        log(f"Tuning XGBoost ({args.tune_iter} candidates x {args.cv}-fold CV, scoring=f1_macro)...")
+        xgb_search = RandomizedSearchCV(
+            XGBClassifier(**xgb_base), xgb_space, n_iter=args.tune_iter,
+            scoring="f1_macro", cv=cv, random_state=42, n_jobs=1, refit=False,
+        )
+        xgb_search.fit(X_tune, y_tune, sample_weight=w_tune)
+        xgb_params.update(xgb_search.best_params_)
+        log(f"Best XGBoost params: {xgb_search.best_params_} (cv f1_macro={xgb_search.best_score_:.4f})")
+
+    log("Training XGBoost (gradient-boosted trees)...")
+    xgb = XGBClassifier(**xgb_base, **xgb_params)
     xgb.fit(X_train, y_train, sample_weight=class_weights)
 
+    rf_base = dict(n_jobs=-1, random_state=42)
+    rf_params = dict(n_estimators=200, max_depth=16, min_samples_leaf=10, max_features="sqrt")
+    if args.tune_iter > 0:
+        rf_space = {
+            "n_estimators": [150, 250],
+            "max_depth": [10, 13, 16],
+            "min_samples_leaf": [5, 10, 20, 40],
+            "max_features": ["sqrt", "log2", 0.3],
+        }
+        rf_iter = max(4, args.tune_iter // 3)
+        log(f"Tuning Random Forest ({rf_iter} candidates x {args.cv}-fold CV, scoring=f1_macro)...")
+        rf_search = RandomizedSearchCV(
+            RandomForestClassifier(**rf_base), rf_space, n_iter=rf_iter,
+            scoring="f1_macro", cv=cv, random_state=42, n_jobs=1, refit=False,
+        )
+        rf_search.fit(X_tune, y_tune, sample_weight=w_tune)
+        rf_params.update(rf_search.best_params_)
+        log(f"Best Random Forest params: {rf_search.best_params_} (cv f1_macro={rf_search.best_score_:.4f})")
+
     log("Training Random Forest (bagged decision trees)...")
-    rf = RandomForestClassifier(
-        n_estimators=110, max_depth=11, min_samples_leaf=15,
-        n_jobs=-1, random_state=42,
-    )
+    rf = RandomForestClassifier(**rf_base, **rf_params)
     rf.fit(X_train, y_train, sample_weight=class_weights)
 
     def metrics_for(model: Any, name: str) -> dict:
@@ -550,10 +668,20 @@ def main() -> int:
 
     # Historical lookups consumed by the Node inference engine.
     station_mean = weather.groupby("iata")["composite_risk"].mean().round(3).to_dict()
+    ref_utc = datetime(2024, 1, 15, 12, tzinfo=timezone.utc)
+    utc_offset_by_airport = {}
+    for airport in airports:
+        try:
+            utc_offset_by_airport[airport["iata"]] = round(
+                ref_utc.astimezone(ZoneInfo(airport["timezone"])).utcoffset().total_seconds() / 3600, 2
+            )
+        except Exception:  # noqa: BLE001
+            utc_offset_by_airport[airport["iata"]] = 0.0
     lookup.update({
         "weather_risk_by_airport": {k: float(v) for k, v in station_mean.items()},
         "ifr_rate_by_airport": {k: float(v) for k, v in ifr_by_airport.items()},
         "congestion_by_airport": congestion_map,
+        "utc_offset_by_airport": utc_offset_by_airport,
         "global_weather_risk": round(float(weather["composite_risk"].mean()), 3),
         "global_ifr_rate": round(global_ifr, 4),
         "global_congestion_index": round(global_congestion, 3),
@@ -577,7 +705,7 @@ def main() -> int:
     model_metrics = {
         "model_name": registry["models"][active]["display_name"],
         "active_model": active,
-        "version": "2.0.0",
+        "version": "3.0.0",
         "trained_timestamp": trained_at,
         "training_sample_count": int(X_train.shape[0]),
         "validation_sample_count": int(X_test.shape[0]),
@@ -626,9 +754,13 @@ def main() -> int:
         "carrier_nas_rate": "Carrier historical mean NAS/airspace-attributed delay (min)",
         "carrier_late_aircraft_rate": "Carrier historical mean late-aircraft (propagated) delay (min)",
         "route_delay_rate": "Historical mean arrival delay (min) for this specific origin-destination pair",
+        "origin_hour_delay_rate": "Historical mean arrival delay (min) for this origin at this UTC departure hour",
+        "carrier_origin_delay_rate": "Historical mean arrival delay (min) for this carrier departing this origin",
         "departure_hour_utc": "Scheduled departure hour in Coordinated Universal Time (0-23)",
+        "local_departure_hour": "Scheduled departure hour in the origin's local time (0-23)",
         "day_of_week": "Day of week (1=Monday, 7=Sunday)",
         "scheduled_distance_nm": "Great-circle nautical miles between origin and destination",
+        "scheduled_elapsed_hours": "Scheduled flight block time in hours (CRSElapsedTime/60)",
         "origin_weather_risk": "Origin composite METAR severity index (0-100) matched to departure time",
         "dest_weather_risk": "Destination composite METAR severity index (0-100) matched to arrival time",
         "origin_congestion_index": "Origin hourly operations-to-capacity load factor (0-100)",
@@ -639,7 +771,7 @@ def main() -> int:
     for f in FEATURES:
         schema_features.append({
             "name": f,
-            "type": "float" if f not in ("departure_hour_utc", "day_of_week") else "int",
+            "type": "float" if f not in ("departure_hour_utc", "local_departure_hour", "day_of_week") else "int",
             "description": descriptions.get(f, f),
             "min": lookup["feature_mins"][f], "max": lookup["feature_maxs"][f], "mean": lookup["feature_means"][f],
         })

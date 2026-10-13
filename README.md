@@ -128,14 +128,18 @@ npm run dev
 
 The application will run on **http://localhost:3000** — the public landing page is at `/` and the operations console is at `/app/dashboard`. To use a different port, set `PORT` before starting, e.g. `$env:PORT=3001; npm run dev` (PowerShell) or `PORT=3001 npm run dev` (Bash).
 
-### Importing the Kaggle airline-delay dataset
-The project can use Kaggle's [Airline Delay Analysis dataset](https://www.kaggle.com/datasets/sherrytp/airline-delay-analysis). Its Kaggle page currently lists 12 CSV files covering 2009–2019 and 8.7 GB total. Download and extract those CSVs to a local folder, then run:
+### Importing a real flight dataset (BTS / Kaggle)
+The app ships with real U.S. DOT BTS On-Time Performance records already processed into `data/processed/bts_flight_sample.json` and `data/processed/bts_flight_summary.json`, and loads them by default. To rebuild or refresh them from a raw CSV (for example the TranStats `On_Time_Reporting_Carrier_On_Time_Performance_1987_present_2024_1.csv`), or from Kaggle's [Airline Delay Analysis dataset](https://www.kaggle.com/datasets/sherrytp/airline-delay-analysis), point the importer at the folder containing the extracted CSVs:
 
 ```powershell
+# BTS single-month file, restricted to the hub network
+python scripts/import_kaggle_flights.py ".\data\raw\flights" --prefix bts --airport-filter ".\data\raw\airports\airports.json" --source-label "U.S. DOT BTS On-Time Performance - January 2024 (hub network)"
+
+# Kaggle multi-file archive (kept as kaggle_* and opt-in via AEROROUTE_USE_KAGGLE_DATA=true)
 python scripts/import_kaggle_flights.py "C:\path\to\extracted\airline-delay-analysis"
 ```
 
-The importer streams the CSV files, computes analytics over all valid records, and saves a deterministic sample of up to 20,000 flight rows for interactive search. Kaggle data is disabled by default so the application uses the bundled demo records. To opt in after importing, set `AEROROUTE_USE_KAGGLE_DATA=true` in the server environment and restart the app. These generated files are excluded from Git. The extractor does not need a Kaggle API key when you download through the Kaggle website; Kaggle CLI credentials are separate from Gemini credentials.
+The importer streams the CSV files, computes delay analytics over every valid row, and saves a deterministic sample for interactive search. `--prefix` controls the output filenames (`bts_*` or `kaggle_*`), `--airport-filter` keeps only hub-to-hub flights, and `--source-label` sets the provenance string shown in the UI. The committed BTS sample + summary let the app run without the raw CSV; set `AEROROUTE_USE_DEMO_DATA=true` to fall back to the original bundled 20-record demo. The importer needs no API key — download the CSV from the BTS/Kaggle website directly.
 
 ### API keys and live data
 No API key is required to run the current demo. The app reads its flight, airport, weather, congestion, graph, and model-metric data from the bundled `data/` and `models/` JSON files. It does not currently call Gemini, BTS, FAA, or NOAA APIs, and the displayed observations do not refresh from those providers.

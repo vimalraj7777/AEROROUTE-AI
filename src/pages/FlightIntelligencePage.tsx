@@ -85,18 +85,18 @@ export const FlightIntelligencePage: React.FC = () => {
               FLIGHT OPERATIONS INTELLIGENCE
             </h1>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-500/30">
-              BUNDLED HISTORICAL FLIGHT RECORDS
+              U.S. DOT BTS ON-TIME PERFORMANCE
             </span>
           </div>
           <p className="text-xs text-slate-400 font-mono mt-1">
-            Bundled flight records with stored weather context and a deterministic delay-risk scoring demonstration.
+            Real U.S. DOT BTS flight records (January 2024, hub network) with delay attribution and stored weather context.
           </p>
         </div>
 
         <div className="text-xs font-mono text-slate-400">
           {isSampled
             ? `Showing ${flights.length} sampled records · ${datasetRecordCount.toLocaleString()} total flights`
-            : `Showing ${flights.length} bundled sample flights`}
+            : `Showing ${flights.length} sample flights`}
         </div>
       </div>
 
@@ -360,7 +360,7 @@ export const FlightIntelligencePage: React.FC = () => {
                 <span>STORED FLIGHT STATUS</span>
               </div>
               <p className="text-[11px] text-slate-300 leading-relaxed">
-                This bundled flight record is marked <strong className="text-cyan-300">{selectedFlight.status}</strong>. It is a historical status, not a new model prediction.
+                This flight record is marked <strong className="text-cyan-300">{selectedFlight.status}</strong>. It is a historical status, not a new model prediction.
               </p>
             </div>
           </div>

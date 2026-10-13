@@ -43,21 +43,32 @@ class DataService {
       }
 
       // 3. Flights
-      const flightsPath = path.join(DATA_DIR, 'raw', 'flights', 'bts_historical_flights.json');
-      if (fs.existsSync(flightsPath)) {
-        this.flights = JSON.parse(fs.readFileSync(flightsPath, 'utf-8'));
+      const bundledFlightsPath = path.join(DATA_DIR, 'raw', 'flights', 'bts_historical_flights.json');
+      if (fs.existsSync(bundledFlightsPath)) {
+        this.flights = JSON.parse(fs.readFileSync(bundledFlightsPath, 'utf-8'));
       }
 
-      const kaggleSamplePath = path.join(DATA_DIR, 'processed', 'kaggle_flight_sample.json');
-      const kaggleSummaryPath = path.join(DATA_DIR, 'processed', 'kaggle_flight_summary.json');
+      const processedDir = path.join(DATA_DIR, 'processed');
+      const useBtsDataset = process.env.AEROROUTE_USE_DEMO_DATA !== 'true';
+      const btsSamplePath = path.join(processedDir, 'bts_flight_sample.json');
+      const btsSummaryPath = path.join(processedDir, 'bts_flight_summary.json');
+      const kaggleSamplePath = path.join(processedDir, 'kaggle_flight_sample.json');
+      const kaggleSummaryPath = path.join(processedDir, 'kaggle_flight_summary.json');
       const useKaggleDataset = process.env.AEROROUTE_USE_KAGGLE_DATA === 'true';
-      if (useKaggleDataset && fs.existsSync(kaggleSamplePath) && fs.existsSync(kaggleSummaryPath)) {
+
+      if (useBtsDataset && fs.existsSync(btsSamplePath) && fs.existsSync(btsSummaryPath)) {
+        this.flights = JSON.parse(fs.readFileSync(btsSamplePath, 'utf-8'));
+        this.flightSummary = JSON.parse(fs.readFileSync(btsSummaryPath, 'utf-8'));
+        addLog(
+          'INFO',
+          'DATABASE',
+          `Loaded processed BTS dataset: ${this.flightSummary?.total_flights ?? 0} total flights, ${this.flights.length} searchable records.`
+        );
+      } else if (useBtsDataset && useKaggleDataset && fs.existsSync(kaggleSamplePath) && fs.existsSync(kaggleSummaryPath)) {
         this.flights = JSON.parse(fs.readFileSync(kaggleSamplePath, 'utf-8'));
         this.flightSummary = JSON.parse(fs.readFileSync(kaggleSummaryPath, 'utf-8'));
-      } else if (useKaggleDataset) {
-        addLog('ERROR', 'DATABASE', 'Kaggle dataset mode is enabled, but imported sample and summary files are missing.');
       } else {
-        addLog('INFO', 'DATABASE', 'Using bundled demo flight records; Kaggle dataset mode is disabled.');
+        addLog('INFO', 'DATABASE', 'Using bundled demo flight records. Run scripts/import_kaggle_flights.py to load the real BTS dataset.');
       }
 
       // 4. Congestion / Activity

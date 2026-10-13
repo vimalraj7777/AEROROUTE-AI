@@ -1,6 +1,6 @@
 {
   "active_model": "xgboost",
-  "trained_timestamp": "2026-10-13T15:25:53.512304Z",
+  "trained_timestamp": "2026-10-13T17:11:50.388473Z",
   "trained_on_files": [
     "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2024_1.csv",
     "metar_asos_2024_01.csv"
@@ -13,9 +13,13 @@
     "carrier_nas_rate",
     "carrier_late_aircraft_rate",
     "route_delay_rate",
+    "origin_hour_delay_rate",
+    "carrier_origin_delay_rate",
     "departure_hour_utc",
+    "local_departure_hour",
     "day_of_week",
     "scheduled_distance_nm",
+    "scheduled_elapsed_hours",
     "origin_weather_risk",
     "dest_weather_risk",
     "origin_congestion_index",
@@ -57,157 +61,173 @@
       "joblib": "xgboost_model.joblib",
       "metrics": {
         "model_name": "XGBoost Gradient-Boosted Trees",
-        "accuracy": 0.5607,
-        "balanced_accuracy": 0.3614,
-        "macro_precision": 0.3629,
-        "macro_recall": 0.3614,
-        "macro_f1": 0.3457,
-        "weighted_f1": 0.5175,
-        "log_loss": 1.1634,
+        "accuracy": 0.569,
+        "balanced_accuracy": 0.3265,
+        "macro_precision": 0.3559,
+        "macro_recall": 0.3265,
+        "macro_f1": 0.3208,
+        "weighted_f1": 0.5119,
+        "log_loss": 1.1819,
         "confusion_matrix": [
           [
-            14406,
-            757,
-            652,
-            691,
-            728
+            54992,
+            1895,
+            1894,
+            2707,
+            1706
           ],
           [
-            3307,
-            489,
-            426,
-            370,
-            251
+            12624,
+            1396,
+            1328,
+            1398,
+            633
           ],
           [
-            1986,
-            403,
-            519,
-            450,
-            215
+            7923,
+            996,
+            1465,
+            1698,
+            535
           ],
           [
-            1504,
-            233,
-            321,
-            925,
-            236
+            6567,
+            511,
+            939,
+            3088,
+            780
           ],
           [
-            441,
-            31,
-            49,
-            178,
-            544
+            2024,
+            114,
+            197,
+            705,
+            1340
           ]
         ],
         "per_class_metrics": [
           {
             "class_id": 0,
             "label": "On-Time / Early (<= 0 min)",
-            "precision": 0.666,
-            "recall": 0.836,
-            "f1": 0.741,
-            "support": 17234
+            "precision": 0.654,
+            "recall": 0.87,
+            "f1": 0.747,
+            "support": 63194
           },
           {
             "class_id": 1,
             "label": "Minor Delay (1-15 min)",
-            "precision": 0.256,
-            "recall": 0.101,
-            "f1": 0.145,
-            "support": 4843
+            "precision": 0.284,
+            "recall": 0.08,
+            "f1": 0.125,
+            "support": 17379
           },
           {
             "class_id": 2,
             "label": "Moderate Delay (16-45 min)",
-            "precision": 0.264,
-            "recall": 0.145,
-            "f1": 0.187,
-            "support": 3573
+            "precision": 0.252,
+            "recall": 0.116,
+            "f1": 0.159,
+            "support": 12617
           },
           {
             "class_id": 3,
             "label": "Severe Delay (> 45 min)",
-            "precision": 0.354,
-            "recall": 0.287,
-            "f1": 0.317,
-            "support": 3219
+            "precision": 0.322,
+            "recall": 0.26,
+            "f1": 0.288,
+            "support": 11885
           },
           {
             "class_id": 4,
             "label": "Cancelled / Diverted",
-            "precision": 0.276,
-            "recall": 0.438,
-            "f1": 0.338,
-            "support": 1243
+            "precision": 0.268,
+            "recall": 0.306,
+            "f1": 0.286,
+            "support": 4380
           }
         ]
       },
       "feature_importance": [
         {
-          "feature": "carrier_weather_rate",
-          "importance": 0.1421
-        },
-        {
           "feature": "carrier_late_aircraft_rate",
-          "importance": 0.1197
-        },
-        {
-          "feature": "carrier_delay_rate",
-          "importance": 0.0839
+          "importance": 0.0931
         },
         {
           "feature": "carrier_nas_rate",
-          "importance": 0.0699
+          "importance": 0.072
         },
         {
           "feature": "day_of_week",
-          "importance": 0.0581
-        },
-        {
-          "feature": "origin_ifr_rate",
-          "importance": 0.0535
-        },
-        {
-          "feature": "route_delay_rate",
-          "importance": 0.0508
-        },
-        {
-          "feature": "departure_hour_utc",
-          "importance": 0.0497
+          "importance": 0.0605
         },
         {
           "feature": "origin_weather_risk",
-          "importance": 0.0493
+          "importance": 0.0594
         },
         {
-          "feature": "dest_ifr_rate",
-          "importance": 0.0489
+          "feature": "local_departure_hour",
+          "importance": 0.0569
         },
         {
-          "feature": "origin_delay_rate",
-          "importance": 0.0487
+          "feature": "carrier_delay_rate",
+          "importance": 0.0564
+        },
+        {
+          "feature": "origin_ifr_rate",
+          "importance": 0.054
         },
         {
           "feature": "dest_weather_risk",
-          "importance": 0.0465
+          "importance": 0.0527
         },
         {
           "feature": "origin_congestion_index",
-          "importance": 0.0463
+          "importance": 0.049
         },
         {
-          "feature": "dest_delay_rate",
-          "importance": 0.0448
+          "feature": "dest_ifr_rate",
+          "importance": 0.0484
         },
         {
           "feature": "dest_congestion_index",
-          "importance": 0.0441
+          "importance": 0.0452
+        },
+        {
+          "feature": "carrier_origin_delay_rate",
+          "importance": 0.0447
+        },
+        {
+          "feature": "origin_delay_rate",
+          "importance": 0.0438
+        },
+        {
+          "feature": "carrier_weather_rate",
+          "importance": 0.0438
         },
         {
           "feature": "scheduled_distance_nm",
-          "importance": 0.0438
+          "importance": 0.0403
+        },
+        {
+          "feature": "dest_delay_rate",
+          "importance": 0.0384
+        },
+        {
+          "feature": "origin_hour_delay_rate",
+          "importance": 0.0383
+        },
+        {
+          "feature": "scheduled_elapsed_hours",
+          "importance": 0.0364
+        },
+        {
+          "feature": "route_delay_rate",
+          "importance": 0.0333
+        },
+        {
+          "feature": "departure_hour_utc",
+          "importance": 0.0333
         }
       ]
     },
@@ -217,48 +237,48 @@
       "joblib": "random_forest_model.joblib",
       "metrics": {
         "model_name": "Random Forest (Bagged Trees)",
-        "accuracy": 0.5695,
-        "balanced_accuracy": 0.3035,
-        "macro_precision": 0.3573,
-        "macro_recall": 0.3035,
-        "macro_f1": 0.2794,
-        "weighted_f1": 0.4788,
-        "log_loss": 1.2158,
+        "accuracy": 0.5771,
+        "balanced_accuracy": 0.2855,
+        "macro_precision": 0.3614,
+        "macro_recall": 0.2855,
+        "macro_f1": 0.2754,
+        "weighted_f1": 0.4849,
+        "log_loss": 1.2199,
         "confusion_matrix": [
           [
-            15805,
-            112,
-            185,
-            479,
-            653
+            58725,
+            674,
+            756,
+            1775,
+            1264
           ],
           [
-            4084,
-            100,
-            159,
-            256,
-            244
+            14792,
+            558,
+            609,
+            941,
+            479
           ],
           [
-            2748,
-            89,
-            202,
-            338,
-            196
+            9939,
+            376,
+            734,
+            1168,
+            400
           ],
           [
-            2223,
-            35,
-            110,
-            636,
-            215
+            8583,
+            155,
+            403,
+            2159,
+            585
           ],
           [
-            652,
-            8,
-            19,
-            159,
-            405
+            2716,
+            36,
+            93,
+            544,
+            991
           ]
         ],
         "per_class_metrics": [
@@ -266,108 +286,124 @@
             "class_id": 0,
             "label": "On-Time / Early (<= 0 min)",
             "precision": 0.62,
-            "recall": 0.917,
-            "f1": 0.739,
-            "support": 17234
+            "recall": 0.929,
+            "f1": 0.744,
+            "support": 63194
           },
           {
             "class_id": 1,
             "label": "Minor Delay (1-15 min)",
-            "precision": 0.291,
-            "recall": 0.021,
-            "f1": 0.039,
-            "support": 4843
+            "precision": 0.31,
+            "recall": 0.032,
+            "f1": 0.058,
+            "support": 17379
           },
           {
             "class_id": 2,
             "label": "Moderate Delay (16-45 min)",
-            "precision": 0.299,
-            "recall": 0.057,
-            "f1": 0.095,
-            "support": 3573
+            "precision": 0.283,
+            "recall": 0.058,
+            "f1": 0.097,
+            "support": 12617
           },
           {
             "class_id": 3,
             "label": "Severe Delay (> 45 min)",
-            "precision": 0.34,
-            "recall": 0.198,
-            "f1": 0.25,
-            "support": 3219
+            "precision": 0.328,
+            "recall": 0.182,
+            "f1": 0.234,
+            "support": 11885
           },
           {
             "class_id": 4,
             "label": "Cancelled / Diverted",
-            "precision": 0.236,
-            "recall": 0.326,
-            "f1": 0.274,
-            "support": 1243
+            "precision": 0.266,
+            "recall": 0.226,
+            "f1": 0.245,
+            "support": 4380
           }
         ]
       },
       "feature_importance": [
         {
           "feature": "origin_weather_risk",
-          "importance": 0.139
+          "importance": 0.1086
         },
         {
           "feature": "dest_weather_risk",
-          "importance": 0.1028
+          "importance": 0.0806
         },
         {
-          "feature": "route_delay_rate",
-          "importance": 0.0903
-        },
-        {
-          "feature": "departure_hour_utc",
-          "importance": 0.0854
-        },
-        {
-          "feature": "carrier_late_aircraft_rate",
-          "importance": 0.0775
+          "feature": "origin_hour_delay_rate",
+          "importance": 0.0733
         },
         {
           "feature": "day_of_week",
-          "importance": 0.0698
+          "importance": 0.0673
         },
         {
-          "feature": "carrier_delay_rate",
-          "importance": 0.0639
+          "feature": "local_departure_hour",
+          "importance": 0.0648
         },
         {
-          "feature": "carrier_weather_rate",
-          "importance": 0.0631
-        },
-        {
-          "feature": "scheduled_distance_nm",
-          "importance": 0.0537
+          "feature": "carrier_late_aircraft_rate",
+          "importance": 0.0641
         },
         {
           "feature": "carrier_nas_rate",
-          "importance": 0.0496
+          "importance": 0.0623
+        },
+        {
+          "feature": "carrier_delay_rate",
+          "importance": 0.0621
+        },
+        {
+          "feature": "carrier_origin_delay_rate",
+          "importance": 0.061
+        },
+        {
+          "feature": "route_delay_rate",
+          "importance": 0.0453
+        },
+        {
+          "feature": "carrier_weather_rate",
+          "importance": 0.0448
+        },
+        {
+          "feature": "scheduled_distance_nm",
+          "importance": 0.0434
+        },
+        {
+          "feature": "scheduled_elapsed_hours",
+          "importance": 0.0417
         },
         {
           "feature": "origin_delay_rate",
-          "importance": 0.042
-        },
-        {
-          "feature": "origin_ifr_rate",
-          "importance": 0.0381
+          "importance": 0.0407
         },
         {
           "feature": "dest_delay_rate",
-          "importance": 0.0377
+          "importance": 0.0395
+        },
+        {
+          "feature": "departure_hour_utc",
+          "importance": 0.0301
+        },
+        {
+          "feature": "origin_ifr_rate",
+          "importance": 0.0213
         },
         {
           "feature": "dest_ifr_rate",
-          "importance": 0.0327
+          "importance": 0.0198
         },
         {
           "feature": "origin_congestion_index",
-          "importance": 0.0293
+          "importance": 0.0147
         },
         {
           "feature": "dest_congestion_index",
-          "importance": 0.0252
+          "importance": 0.0145
         }
       ]
     }

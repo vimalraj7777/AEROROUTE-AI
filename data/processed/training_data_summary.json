@@ -1,47 +1,47 @@
 {
   "flight_file": "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2024_1.csv",
   "flight_rows": 547271,
-  "flight_columns": 23,
+  "flight_columns": 24,
   "weather_file": "metar_asos_2024_01.csv",
   "weather_rows": 18592,
   "weather_columns": 12,
-  "feature_ready_rows": 150557,
-  "feature_count": 16,
-  "train_rows": 120445,
-  "test_rows": 30112,
-  "carriers": 14,
-  "origin_airports": 25,
-  "destination_airports": 25,
+  "feature_ready_rows": 547271,
+  "feature_count": 20,
+  "train_rows": 437816,
+  "test_rows": 109455,
+  "carriers": 15,
+  "origin_airports": 334,
+  "destination_airports": 334,
   "class_distribution": [
     {
       "class_id": 0,
       "name": "On-Time",
-      "count": 86169,
-      "percentage": 57.2
+      "count": 315970,
+      "percentage": 57.7
     },
     {
       "class_id": 1,
       "name": "Minor",
-      "count": 24216,
-      "percentage": 16.1
+      "count": 86892,
+      "percentage": 15.9
     },
     {
       "class_id": 2,
       "name": "Moderate",
-      "count": 17864,
-      "percentage": 11.9
+      "count": 63082,
+      "percentage": 11.5
     },
     {
       "class_id": 3,
       "name": "Severe",
-      "count": 16094,
-      "percentage": 10.7
+      "count": 59426,
+      "percentage": 10.9
     },
     {
       "class_id": 4,
       "name": "Cancelled",
-      "count": 6214,
-      "percentage": 4.1
+      "count": 21901,
+      "percentage": 4.0
     }
   ]
 }

@@ -11,6 +11,7 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = PROJECT_ROOT / "data" / "processed"
+DEFAULT_SOURCE_LABEL = "Kaggle Airline Delay Analysis (Sherry)"
 BUCKETS = [
     {"label": "On-Time (<=0m)", "count": 0, "color": "#10b981"},
     {"label": "Minor (1-15m)", "count": 0, "color": "#38bdf8"},
@@ -35,8 +36,16 @@ ALIASES = {
     "year": ("year",),
     "month": ("month",),
     "day": ("dayofmonth", "day_of_month", "day"),
-    "carrier": ("op_unique_carrier", "unique_carrier", "op_carrier", "carrier", "airline"),
-    "flight_num": ("op_carrier_fl_num", "flight_num", "flightnumber"),
+    "carrier": (
+        "op_unique_carrier",
+        "unique_carrier",
+        "op_carrier",
+        "carrier",
+        "airline",
+        "iata_code_reporting_airline",
+        "reporting_airline",
+    ),
+    "flight_num": ("op_carrier_fl_num", "flight_num", "flightnumber", "flight_number_reporting_airline"),
     "origin": ("origin", "origin_airport"),
     "dest": ("dest", "destination", "dest_airport"),
     "crs_dep_time": ("crsdeptime", "crs_dep_time", "scheduled_departure"),
@@ -162,6 +171,23 @@ def normalized_flight(
     }
 
 
+def load_airport_filter(path: Path) -> set[str]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict):
+        payload = payload.get("airports", [])
+    codes: set[str] = set()
+    for item in payload:
+        if isinstance(item, dict):
+            code = item.get("iata") or item.get("IATA") or item.get("code")
+        else:
+            code = item
+        if code:
+            codes.add(str(code).strip().upper())
+    if not codes:
+        raise ValueError(f"No airport codes found in {path}")
+    return codes
+
+
 def process_file(
     source: Path,
     sample: list[dict[str, Any]],
@@ -171,6 +197,8 @@ def process_file(
     bucket_counts: list[int],
     carrier_stats: dict[str, list[int]],
     row_number: int,
+    record_prefix: str,
+    airports: set[str] | None = None,
 ) -> int:
     with source.open("r", encoding="utf-8-sig", newline="") as csv_file:
         reader = csv.DictReader(csv_file)
@@ -188,9 +216,12 @@ def process_file(
 
         for row in reader:
             row_number += 1
-            flight = normalized_flight(row, columns, f"kaggle-{row_number}")
+            flight = normalized_flight(row, columns, f"{record_prefix}-{row_number}")
             if flight is None:
                 counts["invalid_rows"] += 1
+                continue
+            if airports is not None and (flight["origin"] not in airports or flight["dest"] not in airports):
+                counts["filtered_rows"] += 1
                 continue
             counts["flights"] += 1
             bucket_counts[flight["delay_severity_class"] if flight["delay_severity_class"] < 4 else 4] += 1
@@ -220,15 +251,32 @@ def write_json(path: Path, value: Any) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Stream Kaggle BTS airline-delay CSV files into a compact sample and full-dataset analytics."
+        description=(
+            "Stream airline on-time CSV files (Kaggle Airline Delay Analysis or U.S. DOT BTS) "
+            "into a compact sample and full-dataset analytics."
+        )
     )
     parser.add_argument("source", type=Path, help="Extracted directory containing yearly CSV files")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--sample-size", type=int, default=20000)
+    parser.add_argument(
+        "--prefix",
+        default="kaggle",
+        help="Output filename and record_id prefix (e.g. 'bts' -> bts_flight_sample.json)",
+    )
+    parser.add_argument("--source-label", default=DEFAULT_SOURCE_LABEL, help="Human-readable dataset label")
+    parser.add_argument(
+        "--airport-filter",
+        type=Path,
+        default=None,
+        help="Optional JSON list of airport IATA codes to keep (origin AND dest must be in the set)",
+    )
     args = parser.parse_args()
 
     if args.sample_size < 1:
         parser.error("--sample-size must be greater than zero")
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", args.prefix):
+        parser.error("--prefix may only contain letters, digits, hyphens and underscores")
     source_dir = args.source.resolve()
     if not source_dir.is_dir():
         parser.error(f"Source directory does not exist: {source_dir}")
@@ -239,6 +287,14 @@ def main() -> int:
     )
     if not files:
         parser.error(f"No CSV files found under {source_dir}")
+
+    airports: set[str] | None = None
+    if args.airport_filter is not None:
+        try:
+            airports = load_airport_filter(args.airport_filter.resolve())
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            parser.error(f"Could not read --airport-filter: {error}")
+        print(f"Restricting to {len(airports)} network airports.", flush=True)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     sample: list[dict[str, Any]] = []
@@ -260,6 +316,8 @@ def main() -> int:
                 bucket_counts,
                 carrier_stats,
                 row_number,
+                args.prefix,
+                airports,
             )
     except (OSError, UnicodeError, csv.Error, ValueError) as error:
         print(f"Import failed: {error}", file=sys.stderr)
@@ -283,17 +341,18 @@ def main() -> int:
         )
     carriers.sort(key=lambda item: item["total"], reverse=True)
     summary = {
-        "source": "Kaggle Airline Delay Analysis (Sherry)",
+        "source": args.source_label,
         "source_files": [file.name for file in files],
         "total_flights": counts["flights"],
         "invalid_rows": counts["invalid_rows"],
+        "filtered_rows": counts.get("filtered_rows", 0),
         "sampled_flights": len(sample),
         "delay_buckets": BUCKETS,
         "carrier_performance": carriers,
     }
 
-    write_json(args.output_dir / "kaggle_flight_sample.json", sample)
-    write_json(args.output_dir / "kaggle_flight_summary.json", summary)
+    write_json(args.output_dir / f"{args.prefix}_flight_sample.json", sample)
+    write_json(args.output_dir / f"{args.prefix}_flight_summary.json", summary)
     print(
         f"Imported {counts['flights']:,} flights from {len(files)} files; "
         f"saved {len(sample):,} searchable sample rows and full-dataset analytics."
