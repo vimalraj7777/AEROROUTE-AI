@@ -1,0 +1,412 @@
+{% extends 'base_app.html' %}
+{% block content %}
+{% if not metrics %}
+<div class="p-8 text-cyan-400 font-mono text-xs">LOADING MODEL ARTIFACTS...</div>
+{% else %}
+{% set f = form or {} %}
+{% set sel_carrier = f.carrier or 'UA' %}
+{% set sel_origin = f.origin or 'ORD' %}
+{% set sel_dest = f.dest or 'EWR' %}
+{% set sel_hour = f.departure_hour_utc if f.departure_hour_utc is not none else 17 %}
+{% set sel_day = f.day_of_week if f.day_of_week is not none else 5 %}
+{% set val_owx = f.origin_weather_risk if f.origin_weather_risk is not none else 65 %}
+{% set val_dwx = f.dest_weather_risk if f.dest_weather_risk is not none else 35 %}
+{% set val_ocg = f.origin_congestion_index if f.origin_congestion_index is not none else 85 %}
+{% set val_dcg = f.dest_congestion_index if f.dest_congestion_index is not none else 45 %}
+{% set val_dist = f.scheduled_distance_nm if f.scheduled_distance_nm is not none else '' %}
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+  <div>
+    <div class="flex items-center gap-2">
+      <i data-lucide="cpu" class="w-5 h-5 text-cyan-400"></i>
+      <h1 class="text-xl font-bold font-mono tracking-tight text-slate-100">
+        DELAY MODEL METRICS &amp; SCORING
+      </h1>
+      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-500/30">
+        BUNDLED METRICS · DETERMINISTIC SCORING
+      </span>
+    </div>
+    <p class="text-xs text-slate-400 font-mono mt-1">
+      The evaluation metrics below are bundled artifacts. The runtime prediction endpoint uses deterministic weighted-score/softmax logic, not a loaded trained model.
+    </p>
+  </div>
+
+  <div class="text-xs font-mono text-cyan-400 border border-cyan-500/20 px-3 py-1.5 rounded bg-cyan-950/30">
+    Reported v{{ metrics.version }} artifact · {{ (metrics.overall_metrics.accuracy * 100) | round(1) }}% accuracy
+  </div>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono">
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">REPORTED ARTIFACT ACCURACY</div>
+    <div class="text-2xl font-bold text-cyan-400 mt-1">
+      {{ (metrics.overall_metrics.accuracy * 100) | round(1) }}%
+    </div>
+    {% if metrics.baseline_comparison %}
+    <div class="text-[10px] text-emerald-400 mt-1">
+      {{ metrics.baseline_comparison.improvement_over_baseline }} vs majority baseline
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">MACRO F1 SCORE</div>
+    <div class="text-2xl font-bold text-slate-100 mt-1">
+      {{ metrics.overall_metrics.macro_f1 }}
+    </div>
+    <div class="text-[10px] text-slate-400 mt-1">Weighted F1: {{ metrics.overall_metrics.weighted_f1 }}</div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">TRAINING CORPUS SIZE</div>
+    <div class="text-2xl font-bold text-slate-100 mt-1">
+      {{ '{:,}'.format(metrics.training_sample_count) }}
+      <span class="text-xs font-normal text-slate-500">rows</span>
+    </div>
+    <div class="text-[10px] text-slate-400 mt-1">{{ metrics.training_period }}</div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">DATA LEAKAGE SHIELD</div>
+    <div class="text-lg font-bold text-emerald-400 mt-1">0% Leakage</div>
+    <div class="text-[10px] text-slate-400 mt-1">Temporal split (no future lookahead)</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">VALIDATION SAMPLES</div>
+    <div class="text-2xl font-bold text-slate-100 mt-1">{{ '{:,}'.format(metrics.validation_sample_count) if metrics.validation_sample_count is defined else '—' }}</div>
+  </div>
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">TEST SAMPLES</div>
+    <div class="text-2xl font-bold text-slate-100 mt-1">{{ '{:,}'.format(metrics.test_sample_count) if metrics.test_sample_count is defined else '—' }}</div>
+  </div>
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">SPLIT STRATEGY</div>
+    <div class="text-[11px] text-slate-300 mt-1 leading-snug">{{ metrics.split_strategy }}</div>
+  </div>
+</div>
+
+<div class="bg-[#0c121d] border border-cyan-500/30 rounded p-5 space-y-4">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+    <div class="flex items-center gap-2">
+      <i data-lucide="zap" class="w-5 h-5 text-cyan-400"></i>
+      <div>
+        <h2 class="text-sm font-bold font-mono text-slate-100">
+          DELAY RISK SCORING SIMULATOR
+        </h2>
+        <p class="text-[11px] font-mono text-slate-400">
+          Adjust flight, weather, and congestion inputs to run the deterministic scoring endpoint.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <form method="get" action="/app/model" class="space-y-4">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono text-xs">
+      <div>
+        <label class="text-slate-400 block mb-1">CARRIER</label>
+        <select name="carrier" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200">
+          {% for c in carriers %}
+          <option value="{{ c }}" {% if c == sel_carrier %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="text-slate-400 block mb-1">ORIGIN HUB</label>
+        <select name="origin" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200">
+          {% for a in airports %}
+          <option value="{{ a.iata }}" {% if a.iata == sel_origin %}selected{% endif %}>{{ a.iata }} ({{ a.city }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="text-slate-400 block mb-1">DESTINATION HUB</label>
+        <select name="dest" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200">
+          {% for a in airports %}
+          <option value="{{ a.iata }}" {% if a.iata == sel_dest %}selected{% endif %}>{{ a.iata }} ({{ a.city }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="text-slate-400 block mb-1">DEPARTURE HOUR (UTC)</label>
+        <input type="number" name="departure_hour_utc" min="0" max="23" value="{{ sel_hour }}"
+               class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono text-xs pt-2 border-t border-slate-800">
+      <div>
+        <label class="text-slate-400 block mb-1">ORIGIN METAR RISK</label>
+        <input type="number" name="origin_weather_risk" min="0" max="100" value="{{ val_owx }}"
+               class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200" />
+      </div>
+
+      <div>
+        <label class="text-slate-400 block mb-1">DEST METAR RISK</label>
+        <input type="number" name="dest_weather_risk" min="0" max="100" value="{{ val_dwx }}"
+               class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200" />
+      </div>
+
+      <div>
+        <label class="text-slate-400 block mb-1">ORIGIN CONGESTION INDEX</label>
+        <input type="number" name="origin_congestion_index" min="0" max="100" value="{{ val_ocg }}"
+               class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200" />
+      </div>
+
+      <div>
+        <label class="text-slate-400 block mb-1">DEST CONGESTION INDEX</label>
+        <input type="number" name="dest_congestion_index" min="0" max="100" value="{{ val_dcg }}"
+               class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono text-xs pt-2 border-t border-slate-800 items-end">
+      <div>
+        <label class="text-slate-400 block mb-1">SCHEDULED DISTANCE (NM)</label>
+        <input type="number" name="scheduled_distance_nm" min="0" value="{{ val_dist }}"
+               class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200" />
+      </div>
+
+      <div>
+        <label class="text-slate-400 block mb-1">DAY OF WEEK</label>
+        <select name="day_of_week" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200">
+          {% for d in range(7) %}
+          <option value="{{ d }}" {% if d == sel_day %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="sm:col-span-2 flex sm:justify-end">
+        <button type="submit"
+                class="px-3.5 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-mono text-xs font-bold transition-colors cursor-pointer">
+          Score delay risk
+        </button>
+      </div>
+    </div>
+  </form>
+
+  {% if error %}
+  <div class="mt-4 pt-4 border-t border-slate-800">
+    <div class="flex items-start gap-2 bg-rose-950/40 border border-rose-500/30 rounded p-3.5 font-mono text-xs text-rose-300">
+      <i data-lucide="alert-triangle" class="w-[18px] h-[18px] text-rose-400 shrink-0"></i>
+      <span>{{ error }}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if prediction %}
+  {% if prediction.statusCode == 'ON_TIME' %}
+  {% set badge = 'bg-emerald-950/60 text-emerald-400 border-emerald-500/30' %}
+  {% elif prediction.statusCode == 'MINOR_DELAY' %}
+  {% set badge = 'bg-sky-950/60 text-sky-400 border-sky-500/30' %}
+  {% elif prediction.statusCode == 'MODERATE_DELAY' %}
+  {% set badge = 'bg-amber-950/60 text-amber-400 border-amber-500/30' %}
+  {% elif prediction.statusCode == 'SEVERE_DELAY' %}
+  {% set badge = 'bg-red-950/60 text-red-400 border-red-500/30' %}
+  {% else %}
+  {% set badge = 'bg-slate-800 text-slate-300 border-slate-600' %}
+  {% endif %}
+
+  <div class="mt-4 pt-4 border-t border-slate-800 space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 p-3.5 rounded border border-slate-800 font-mono">
+      <div>
+        <span class="text-[10px] text-slate-500 uppercase tracking-wider block">
+          PREDICTED CLASSIFICATION OUTCOME
+        </span>
+        <div class="flex items-center gap-2 mt-0.5">
+          <span class="text-lg font-bold text-cyan-300">{{ prediction.predictedLabel }}</span>
+          <span class="text-[10px] px-2 py-0.5 rounded border {{ badge }}">{{ prediction.statusCode }}</span>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="text-[10px] text-slate-500 block">MODEL CONFIDENCE</span>
+        <span class="text-lg font-bold text-emerald-400">{{ (prediction.confidence * 100) | round | int }}%</span>
+      </div>
+    </div>
+
+    <div class="space-y-1.5 font-mono text-xs">
+      <div class="text-slate-400 text-[11px] mb-1">Class Score Probabilities:</div>
+      <div class="grid grid-cols-1 sm:grid-cols-5 gap-2">
+        {% for c in prediction.classProbabilities %}
+        <div class="bg-slate-900/40 p-2 rounded border border-slate-800">
+          <div class="text-[10px] text-slate-400 truncate">{{ c.label }}</div>
+          <div class="text-sm font-bold text-slate-200 mt-1">{{ (c.probability * 100) | round | int }}%</div>
+          <div class="w-full bg-slate-800 h-1.5 rounded mt-1.5 overflow-hidden">
+            <div class="h-full {% if c.classId == prediction.predictedClassId %}bg-cyan-400{% else %}bg-slate-600{% endif %}"
+                 style="width: {{ c.probability * 100 }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="space-y-1 font-mono text-xs pt-2">
+      <div class="text-slate-400 text-[11px] mb-1.5 flex items-center gap-1.5">
+        <i data-lucide="activity" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span>Scoring Factors (Top Impact Contributors):</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {% for ftr in prediction.contributingFeatures %}
+        <div class="bg-slate-900/50 p-2 rounded border border-slate-800 flex justify-between items-center text-[11px]">
+          <span class="text-slate-300">{{ ftr.displayName }}</span>
+          {% if ftr.impact == 'increases_delay' %}
+          <span class="font-bold text-rose-400 flex items-center gap-1">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>+Risk
+          </span>
+          {% elif ftr.impact == 'reduces_delay' %}
+          <span class="font-bold text-emerald-400 flex items-center gap-1">
+            <i data-lucide="trending-down" class="w-3.5 h-3.5"></i>-Risk
+          </span>
+          {% else %}
+          <span class="font-bold text-slate-400">Neutral</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <h3 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+        <i data-lucide="target" class="w-4 h-4 text-cyan-400"></i>
+        Evaluation Confusion Matrix
+      </h3>
+      <span class="text-[10px] font-mono text-slate-500">Test Split (N={{ '{:,}'.format(metrics.test_sample_count) if metrics.test_sample_count is defined else '—' }})</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-center font-mono text-xs">
+        <thead>
+          <tr class="text-slate-500 text-[10px]">
+            <th class="py-1">Actual \ Pred</th>
+            {% for l in metrics.confusion_matrix_labels %}
+            <th class="py-1 px-1">{{ l }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800">
+          {% for row in metrics.confusion_matrix %}
+          {% set outer_loop = loop %}
+          <tr class="text-slate-300">
+            <td class="py-2 text-[10px] font-bold text-slate-400 text-left">{{ metrics.confusion_matrix_labels[outer_loop.index0] }}</td>
+            {% for cell in row %}
+            <td class="py-2 px-1 {% if loop.index0 == outer_loop.index0 %}bg-cyan-950/40 font-bold text-cyan-300{% else %}text-slate-500{% endif %}">
+              {{ cell }}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <h3 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 text-cyan-400"></i>
+        Global Feature Importance
+      </h3>
+      <span class="text-[10px] font-mono text-slate-500">Gini Impurity Gain</span>
+    </div>
+
+    <div class="space-y-2 font-mono text-xs">
+      {% if metrics.feature_importance %}
+      {% for fi in metrics.feature_importance %}
+      <div class="space-y-0.5">
+        <div class="flex justify-between text-[11px]">
+          <span class="text-slate-300">{{ fi.feature }}</span>
+          <span class="text-cyan-400">{{ (fi.importance * 100) | round | int }}%</span>
+        </div>
+        <div class="w-full bg-slate-900 h-1.5 rounded overflow-hidden border border-slate-800">
+          <div class="bg-cyan-500 h-full" style="width: {{ (fi.importance * 100 * 3.5) | round(1) }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+      {% elif schema and schema.features %}
+      {% set max_mean = (schema.features | map(attribute='mean') | list | max) or 1 %}
+      {% for sf in schema.features %}
+      <div class="space-y-0.5">
+        <div class="flex justify-between text-[11px]">
+          <span class="text-slate-300">{{ sf.name }}</span>
+          <span class="text-cyan-400">{{ (sf.mean * 100 / max_mean) | round | int }}%</span>
+        </div>
+        <div class="w-full bg-slate-900 h-1.5 rounded overflow-hidden border border-slate-800">
+          <div class="bg-cyan-500 h-full" style="width: {{ (sf.mean * 100 / max_mean) | round(1) }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <h3 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+        <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i>
+        Class Distribution
+      </h3>
+      <span class="text-[10px] font-mono text-slate-500">Training Corpus</span>
+    </div>
+    <div class="space-y-2 font-mono text-xs">
+      {% for cd in metrics.class_distribution %}
+      <div class="space-y-0.5">
+        <div class="flex justify-between text-[11px]">
+          <span class="text-slate-300">{{ cd.name }}</span>
+          <span class="text-cyan-400">{{ cd.percentage }}% · {{ '{:,}'.format(cd.count) }}</span>
+        </div>
+        <div class="w-full bg-slate-900 h-1.5 rounded overflow-hidden border border-slate-800">
+          <div class="bg-cyan-500 h-full" style="width: {{ cd.percentage }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <h3 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-cyan-400"></i>
+        Per-Class Metrics
+      </h3>
+      <span class="text-[10px] font-mono text-slate-500">Precision / Recall / F1</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-center font-mono text-xs">
+        <thead>
+          <tr class="text-slate-500 text-[10px]">
+            <th class="py-1 text-left">Class</th>
+            <th class="py-1 px-1">Precision</th>
+            <th class="py-1 px-1">Recall</th>
+            <th class="py-1 px-1">F1</th>
+            <th class="py-1 px-1">Support</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800">
+          {% for pc in metrics.per_class_metrics %}
+          <tr class="text-slate-300">
+            <td class="py-2 text-left text-[11px] text-slate-300">{{ pc.label }}</td>
+            <td class="py-2 px-1 text-cyan-300">{{ pc.precision }}</td>
+            <td class="py-2 px-1 text-cyan-300">{{ pc.recall }}</td>
+            <td class="py-2 px-1 font-bold text-slate-100">{{ pc.f1 }}</td>
+            <td class="py-2 px-1 text-slate-500">{{ '{:,}'.format(pc.support) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

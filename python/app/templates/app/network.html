@@ -1,0 +1,207 @@
+{% extends 'base_app.html' %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+  <div>
+    <div class="flex items-center gap-2">
+      <h1 class="text-xl font-bold font-mono tracking-tight text-slate-100">
+        NATIONAL AIRSPACE NETWORK TOPOLOGY
+      </h1>
+      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-500/30">
+        GRAPH NODES &amp; CORRIDORS
+      </span>
+    </div>
+    <p class="text-xs text-slate-400 font-mono mt-1">
+      {{ all_nodes | length }} route-graph nodes · {{ edges | length }} directed corridors · {{ nodes | length }} airport locations
+    </p>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <i data-lucide="filter" class="w-3.5 h-3.5 text-cyan-400"></i>
+    <a href="/app/network?region=all"
+       class="rounded px-2.5 py-1 text-xs font-mono border transition-colors {% if region | lower == 'all' %}bg-cyan-950/60 text-cyan-400 border-cyan-500/30{% else %}bg-slate-900 text-slate-300 border-slate-700 hover:border-cyan-500{% endif %}">
+      All US Airspace Regions
+    </a>
+    {% for r in regions %}
+    <a href="/app/network?region={{ r }}"
+       class="rounded px-2.5 py-1 text-xs font-mono border transition-colors {% if region | lower == r | lower %}bg-cyan-950/60 text-cyan-400 border-cyan-500/30{% else %}bg-slate-900 text-slate-300 border-slate-700 hover:border-cyan-500{% endif %}">
+      {{ r }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 space-y-3">
+    <div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 text-xs font-mono text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+          <span>CLICK ANY AIRPORT TO INSPECT OPERATIONAL TELEMETRY</span>
+        </div>
+        <span class="text-[10px] font-mono text-slate-500">
+          Active Hub: {{ selected.iata if selected else '—' }}
+        </span>
+      </div>
+
+      <div class="relative w-full rounded border border-slate-800 bg-[#070a0f] overflow-hidden">
+        <div id="network-map" style="height: 480px" class="w-full z-0"></div>
+        <div class="absolute bottom-2 right-2 z-10 bg-slate-950/80 border border-slate-800/80 px-2.5 py-1 rounded text-[10px] font-mono text-slate-400 pointer-events-none flex items-center gap-3">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-slate-500 inline-block"></span> Directed Corridor
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span> Airport Hub
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span> High Weather Risk
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if selected %}
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+    <div class="pb-3 border-b border-slate-800">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-bold font-mono text-slate-100">{{ selected.iata }}</h3>
+          <div class="text-xs font-mono text-cyan-400">
+            ICAO: {{ selected.icao }} · {{ selected.region }} Region
+          </div>
+        </div>
+        <div class="text-right text-[10px] font-mono text-slate-400">
+          Elev: {{ selected.elevation_ft }} ft
+        </div>
+      </div>
+      <p class="text-xs text-slate-400 font-mono mt-1">{{ selected.name }}</p>
+    </div>
+
+    <div class="space-y-2">
+      <div class="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
+        <i data-lucide="cloud-rain" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span>STATION WEATHER RISK</span>
+      </div>
+      <div class="bg-slate-900/60 border border-slate-800 p-3 rounded font-mono text-xs space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Composite Risk:</span>
+          <span class="text-amber-400 font-bold">{{ selected.weather_risk }} / 100</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <div class="text-xs font-mono font-bold text-slate-300 flex items-center gap-1.5">
+        <i data-lucide="gauge" class="w-3.5 h-3.5 text-purple-400"></i>
+        <span>TERMINAL AIRSPACE CONGESTION</span>
+      </div>
+      <div class="bg-slate-900/60 border border-slate-800 p-3 rounded font-mono text-xs space-y-2">
+        <div class="flex justify-between text-slate-300">
+          <span class="text-slate-400">Congestion Index:</span>
+          <span class="text-purple-400 font-bold">{{ selected.congestion_index }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <a href="/app/routes?origin={{ selected.iata }}"
+       class="w-full mt-4 py-2.5 rounded bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-mono font-semibold text-xs tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer">
+      <i data-lucide="navigation" class="w-4 h-4"></i>
+      <span>PLAN FLIGHT FROM {{ selected.iata }}</span>
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const nodes = {{ nodes | tojson }};
+  const edges = {{ edges | tojson }};
+  const selected = {{ selected | tojson }};
+  const region = {{ region | tojson }};
+
+  window.AeroRouteMaps = {
+    init: function () {
+      const container = document.getElementById('network-map');
+      if (!container || container._leaflet_id) return;
+
+      const map = L.map(container, {
+        center: [39.8283, -98.5795],
+        zoom: 4,
+        zoomControl: true,
+      });
+      map.attributionControl.setPosition('topright');
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      }).addTo(map);
+
+      const layerGroup = L.layerGroup().addTo(map);
+
+      const nodeCoords = {};
+      nodes.forEach(function (n) {
+        nodeCoords[n.iata] = [n.lat, n.lon];
+      });
+
+      const selectedIata = selected ? selected.iata : null;
+
+      edges.forEach(function (corridor) {
+        const from = nodeCoords[corridor.from];
+        const to = nodeCoords[corridor.to];
+        if (!from || !to) return;
+
+        const line = L.polyline([from, to], {
+          color: '#475569',
+          weight: 1,
+          opacity: 0.55,
+        });
+        line.bindTooltip('<div class="font-mono text-xs">' + corridor.from + ' → ' + corridor.to + '</div>');
+        layerGroup.addLayer(line);
+      });
+
+      nodes.forEach(function (n) {
+        const isSelected = selectedIata === n.iata;
+
+        const risk = n.weather_risk || 0;
+        const riskColor = risk > 50 ? '#ef4444' : risk > 30 ? '#f59e0b' : '#06b6d4';
+
+        const circle = L.circleMarker([n.lat, n.lon], {
+          radius: isSelected ? 8 : 5,
+          color: isSelected ? '#ffffff' : riskColor,
+          weight: isSelected ? 2.5 : 1.5,
+          fillColor: '#0f172a',
+          fillOpacity: 0.85,
+        });
+
+        circle.bindTooltip(
+          '<div class="font-mono text-xs">' +
+            '<strong>' + n.iata + '</strong> (' + n.name + ')<br/>' +
+            'METAR Risk: ' + (n.weather_risk != null ? n.weather_risk : 'N/A') + '/100<br/>' +
+            'Congestion: ' + (n.congestion_index != null ? n.congestion_index : 'N/A') + '%' +
+          '</div>',
+          { direction: 'top', className: 'aviation-map-tooltip' }
+        );
+
+        circle.on('click', function () {
+          window.location = '/app/network?region=' + encodeURIComponent(region) + '&selected=' + encodeURIComponent(n.iata);
+        });
+
+        layerGroup.addLayer(circle);
+
+        const icon = L.divIcon({
+          className: 'custom-map-label',
+          html: '<div class="font-mono text-[9px] font-bold text-slate-300 drop-shadow-md select-none pointer-events-none">' + n.iata + '</div>',
+          iconSize: [28, 14],
+          iconAnchor: [14, -6],
+        });
+        const marker = L.marker([n.lat, n.lon], { icon: icon, interactive: false });
+        layerGroup.addLayer(marker);
+      });
+    }
+  };
+</script>
+{% endblock %}

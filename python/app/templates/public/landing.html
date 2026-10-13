@@ -1,0 +1,436 @@
+{% extends 'base_public.html' %}
+
+{% block title %}{{ app_name }} — Aviation Operations & Route Intelligence{% endblock %}
+
+{% block content %}
+{% set features = [
+  ('navigation', 'Multi-Objective Route Optimizer', 'Balance distance, time, weather, congestion and historical delay risk with live weight sliders and explainable decision factors.', 'cyan', '/app/routes'),
+  ('git-branch', 'Dijkstra & A* Engines', 'Custom graph search on a 21-node / 60-corridor airspace graph, with an admissible Haversine heuristic and node-exploration benchmarking.', 'sky', '/app/routes'),
+  ('plane', 'Flight Intelligence', 'Search bundled flight records and inspect delay attribution decomposed into weather, NAS, carrier and late-aircraft causes.', 'indigo', '/app/flights'),
+  ('cloud-rain', 'Weather Intelligence', 'Stored METAR observations translated into winds, visibility, ceiling and phenomena risk factors for route comparison.', 'amber', '/app/weather'),
+  ('gauge', 'Airport Congestion', 'Derived runway load factors, throughput density, taxi-out proxies and Ground Delay Program flags across monitored hubs.', 'violet', '/app/congestion'),
+  ('network', 'Network Topology', 'Interactive Leaflet graph of airports and directed corridors with clickable hub telemetry and regional airspace filters.', 'emerald', '/app/network'),
+  ('cpu', 'Model Metrics & Simulator', 'Bundled evaluation artifacts, confusion matrix and feature importance, plus an interactive delay-risk scoring simulator.', 'cyan', '/app/model'),
+  ('bar-chart-3', 'Operations Analytics', 'Delay-severity distributions, carrier on-time benchmarks and one-click CSV export for reporting and review.', 'sky', '/app/analytics')
+] %}
+
+{% set accent_map = {
+  'cyan': 'text-cyan-300 bg-cyan-500/10 border-cyan-400/20',
+  'sky': 'text-sky-300 bg-sky-500/10 border-sky-400/20',
+  'indigo': 'text-indigo-300 bg-indigo-500/10 border-indigo-400/20',
+  'amber': 'text-amber-300 bg-amber-500/10 border-amber-400/20',
+  'violet': 'text-violet-300 bg-violet-500/10 border-violet-400/20',
+  'emerald': 'text-emerald-300 bg-emerald-500/10 border-emerald-400/20'
+} %}
+
+{% set pipeline = [
+  ('database', 'Ingestion', 'BTS · NOAA · FAA snapshots'),
+  ('layers', 'Feature Engineering', 'Derived risk proxies'),
+  ('network', 'Airspace Graph', '21 nodes · 60 corridors'),
+  ('git-branch', 'Dijkstra & A*', 'Multi-objective cost'),
+  ('cpu', 'Delay Scoring', 'Deterministic softmax'),
+  ('server', 'REST API', 'Express + TypeScript')
+] %}
+
+{% set steps = [
+  ('01', 'Pick a city pair', 'Choose origin and destination hubs from the bundled national airspace network.'),
+  ('02', 'Set your objective', 'Slide the weights or pick a preset: fuel, weather avoidance, congestion or punctuality.'),
+  ('03', 'Compare corridors', 'Review the recommended corridor, alternatives and the explainable decision factors.'),
+  ('04', 'Benchmark the search', 'See Dijkstra vs A* explored nodes, latency and the resulting efficiency gain.')
+] %}
+
+{% set hero_stats = [
+  ('21', 'Airspace nodes'),
+  ('60', 'Directed corridors'),
+  ('84.2%', 'Reported accuracy'),
+  ('2', 'Search engines')
+] %}
+
+{% set techs = ['React 19', 'TypeScript', 'Vite', 'Tailwind CSS', 'Leaflet', 'Recharts', 'Express', 'Dijkstra / A*'] %}
+
+<div class="overflow-hidden">
+  <section class="relative">
+    <div class="absolute inset-0 aurora"></div>
+    <div class="absolute inset-0 grid-overlay"></div>
+    <div class="relative mx-auto max-w-7xl px-5 sm:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28">
+      <div class="grid lg:grid-cols-2 gap-14 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/5 px-3.5 py-1.5 text-xs font-medium text-cyan-300">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            Aviation Operations & Route Intelligence
+          </div>
+
+          <h1 class="mt-6 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight">
+            Plan smarter corridors with
+            <span class="text-gradient"> explainable route intelligence</span>
+          </h1>
+
+          <p class="mt-6 text-base sm:text-lg text-slate-400 leading-relaxed max-w-xl">
+            AeroRoute AI models the national airspace as a weighted graph and optimizes flight
+            corridors with custom <span class="text-slate-200">Dijkstra</span> and
+            <span class="text-slate-200">A*</span> search — balancing weather, congestion and
+            historical delay risk into a single transparent decision.
+          </p>
+
+          <div class="mt-8 flex flex-wrap items-center gap-3">
+            <a
+              href="/app/dashboard"
+              class="inline-flex items-center gap-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition-all hover:scale-[1.02] shadow-lg shadow-cyan-500/25"
+            >
+              Launch Console
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+            <a
+              href="/features"
+              class="inline-flex items-center gap-2 rounded-xl border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.06] px-6 py-3 text-sm font-semibold text-slate-200 transition-colors"
+            >
+              Explore Features
+            </a>
+          </div>
+
+          <div class="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+            {% for v, l in hero_stats %}
+            {% set num = v|replace('%','')|replace(',','') %}
+            <div>
+              <div class="text-2xl font-bold font-mono text-slate-100"
+                {% if num|float(-1) >= 0 %}data-count-to="{{ num }}" data-count-decimals="{{ num.split('.')[1]|length if '.' in num else 0 }}" data-count-suffix="{{ '%' if '%' in v else '' }}"{% endif %}>{{ v }}</div>
+              <div class="text-xs text-slate-500">{{ l }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div>
+          <div class="relative">
+            <div class="absolute -inset-6 rounded-[2rem] bg-gradient-to-tr from-cyan-500/10 via-indigo-500/10 to-violet-500/10 blur-2xl"></div>
+            <div class="relative rounded-2xl border border-white/10 bg-[#0a0f1acc] glass p-4 shadow-2xl shadow-black/40">
+              <div class="flex items-center justify-between px-2 pb-3 border-b border-white/5">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-400/80"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-400/80"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-400/80"></span>
+                </div>
+                <span class="font-mono text-[10px] tracking-wider text-slate-400">
+                  ROUTE OPTIMIZER · JFK → SFO
+                </span>
+                <span class="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-400/20 px-2 py-0.5 text-[10px] font-mono text-emerald-300">
+                  <i data-lucide="check-circle-2" class="w-3 h-3"></i> A* SOLVED
+                </span>
+              </div>
+
+              <svg viewBox="0 0 600 380" class="w-full h-auto">
+                <defs>
+                  <linearGradient id="routeGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#22d3ee" />
+                    <stop offset="60%" stop-color="#38bdf8" />
+                    <stop offset="100%" stop-color="#818cf8" />
+                  </linearGradient>
+                  <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur stdDeviation="4" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                <line x1="90" y1="70" x2="250" y2="172" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="90" y1="70" x2="360" y2="138" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="60" y1="205" x2="250" y2="172" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="60" y1="205" x2="100" y2="262" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="100" y1="262" x2="300" y2="282" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="100" y1="262" x2="152" y2="262" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="152" y1="262" x2="300" y2="282" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="250" y1="172" x2="360" y2="138" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="250" y1="172" x2="300" y2="282" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="300" y1="282" x2="432" y2="272" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="300" y1="282" x2="500" y2="342" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="360" y1="138" x2="522" y2="150" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="360" y1="138" x2="432" y2="272" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="432" y1="272" x2="522" y2="150" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="432" y1="272" x2="500" y2="342" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+                <line x1="522" y1="150" x2="548" y2="118" stroke="#334155" stroke-width="1" stroke-opacity="0.55" />
+
+                <path id="mainRoute" d="M 522 150 L 360 138 L 250 172 L 60 205" fill="none" stroke="#0e7490" stroke-width="6" stroke-opacity="0.25" filter="url(#glow)" />
+                <path
+                  d="M 522 150 L 360 138 L 250 172 L 60 205"
+                  fill="none"
+                  stroke="url(#routeGrad)"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  class="route-draw"
+                />
+                <path d="M 522 150 L 360 138 L 250 172 L 60 205" fill="none" stroke="#a5f3fc" stroke-width="2" class="route-flow" />
+
+                <g>
+                  <circle cx="90" cy="70" r="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6" />
+                  <text x="99" y="74" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">SEA</text>
+                </g>
+                <g>
+                  <circle cx="60" cy="205" r="4" fill="#0891b2" stroke="#67e8f9" stroke-width="1.6" />
+                  <text x="69" y="209" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">SFO</text>
+                </g>
+                <g>
+                  <circle cx="100" cy="262" r="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6" />
+                  <text x="109" y="266" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">LAX</text>
+                </g>
+                <g>
+                  <circle cx="250" cy="172" r="11" fill="none" stroke="#22d3ee" stroke-opacity="0.35" stroke-width="1.5" />
+                  <circle cx="250" cy="172" r="5.5" fill="#0891b2" stroke="#67e8f9" stroke-width="1.6" />
+                  <text x="259" y="176" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">DEN</text>
+                </g>
+                <g>
+                  <circle cx="152" cy="262" r="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6" />
+                  <text x="161" y="266" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">PHX</text>
+                </g>
+                <g>
+                  <circle cx="300" cy="282" r="11" fill="none" stroke="#22d3ee" stroke-opacity="0.35" stroke-width="1.5" />
+                  <circle cx="300" cy="282" r="5.5" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6" />
+                  <text x="309" y="286" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">DFW</text>
+                </g>
+                <g>
+                  <circle cx="360" cy="138" r="11" fill="none" stroke="#22d3ee" stroke-opacity="0.35" stroke-width="1.5" />
+                  <circle cx="360" cy="138" r="5.5" fill="#0891b2" stroke="#67e8f9" stroke-width="1.6" />
+                  <text x="369" y="142" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">ORD</text>
+                </g>
+                <g>
+                  <circle cx="432" cy="272" r="11" fill="none" stroke="#22d3ee" stroke-opacity="0.35" stroke-width="1.5" />
+                  <circle cx="432" cy="272" r="5.5" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6" />
+                  <text x="441" y="276" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">ATL</text>
+                </g>
+                <g>
+                  <circle cx="522" cy="150" r="11" fill="none" stroke="#22d3ee" stroke-opacity="0.35" stroke-width="1.5" />
+                  <circle cx="522" cy="150" r="5.5" fill="#0891b2" stroke="#67e8f9" stroke-width="1.6" />
+                  <text x="531" y="154" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">JFK</text>
+                </g>
+                <g>
+                  <circle cx="500" cy="342" r="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6" />
+                  <text x="509" y="346" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">MIA</text>
+                </g>
+                <g>
+                  <circle cx="548" cy="118" r="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6" />
+                  <text x="557" y="122" fill="#94a3b8" font-size="11" font-family="ui-monospace, monospace">BOS</text>
+                </g>
+
+                <circle r="5" fill="#e0f2fe" filter="url(#glow)">
+                  <animateMotion dur="6.5s" repeatCount="indefinite" rotate="auto" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+                    <mpath href="#mainRoute" />
+                  </animateMotion>
+                </circle>
+              </svg>
+
+              <div class="grid grid-cols-3 gap-3 px-2 pt-3 border-t border-white/5">
+                <div class="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
+                  <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Distance</div>
+                  <div class="text-sm font-semibold text-slate-100 font-mono">2,586 NM</div>
+                </div>
+                <div class="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
+                  <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Weather Risk</div>
+                  <div class="text-sm font-semibold text-slate-100 font-mono">18/100</div>
+                </div>
+                <div class="rounded-lg bg-white/[0.03] border border-white/5 p-2.5">
+                  <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Explored</div>
+                  <div class="text-sm font-semibold text-slate-100 font-mono">9 nodes</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="absolute -left-6 top-24 hidden lg:flex items-center gap-2 rounded-xl glass border border-white/10 px-3 py-2 shadow-xl animate-float">
+              <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+              <span class="text-xs font-mono text-slate-300">Delay risk −32%</span>
+            </div>
+
+            <div class="absolute -right-4 bottom-16 hidden lg:flex items-center gap-2 rounded-xl glass border border-white/10 px-3 py-2 shadow-xl animate-float-slow">
+              <i data-lucide="zap" class="w-4 h-4 text-cyan-400"></i>
+              <span class="text-xs font-mono text-slate-300">A* −41% search space</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="border-y border-white/5 bg-white/[0.015] py-6 overflow-hidden">
+    <div class="flex w-max animate-marquee gap-14 px-6">
+      {% for dup in range(2) %}
+      <div class="flex items-center gap-14">
+        {% for t in techs %}
+        <span class="text-sm font-mono tracking-wide text-slate-500 whitespace-nowrap">{{ t }}</span>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="relative mx-auto max-w-7xl px-5 sm:px-8 py-20 lg:py-28">
+    <div class="reveal max-w-2xl">
+      <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-cyan-400">
+        <i data-lucide="zap" class="w-3.5 h-3.5"></i> Capabilities
+      </div>
+      <h2 class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">
+        Everything you need to reason about routes
+      </h2>
+      <p class="mt-4 text-slate-400 leading-relaxed">
+        Eight integrated modules turn bundled snapshots into transparent, comparable operational
+        decisions.
+      </p>
+    </div>
+
+    <div class="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {% for icon, title, desc, accent, to in features %}
+      <div class="reveal" data-delay="{{ loop.index0 * 50 }}">
+        <a
+          href="{{ to }}"
+          class="group relative block h-full rounded-2xl border border-white/8 bg-white/[0.02] hover:bg-white/[0.04] p-6 transition-all hover:-translate-y-1 hover:border-cyan-400/30"
+        >
+          <div class="w-11 h-11 rounded-xl border flex items-center justify-center {{ accent_map[accent] }}">
+            <i data-lucide="{{ icon }}" class="w-5 h-5"></i>
+          </div>
+          <h3 class="mt-5 font-semibold text-slate-100">{{ title }}</h3>
+          <p class="mt-2 text-sm text-slate-400 leading-relaxed">{{ desc }}</p>
+          <span class="mt-4 inline-flex items-center gap-1 text-xs font-medium text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">
+            Open module <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </span>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="relative border-y border-white/5 bg-white/[0.015] py-20 lg:py-28">
+    <div class="mx-auto max-w-7xl px-5 sm:px-8">
+      <div class="reveal max-w-2xl">
+        <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-indigo-400">
+          <i data-lucide="git-branch" class="w-3.5 h-3.5"></i> Architecture
+        </div>
+        <h2 class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">
+          From raw snapshots to an explainable recommendation
+        </h2>
+        <p class="mt-4 text-slate-400 leading-relaxed">
+          A transparent pipeline you can inspect end to end — every stage maps to a bundled module
+          and a REST endpoint.
+        </p>
+      </div>
+
+      <div class="mt-14 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {% for icon, label, note in pipeline %}
+        <div class="reveal" data-delay="{{ loop.index0 * 80 }}">
+          <div class="relative h-full rounded-2xl border border-white/8 bg-[#0a0f1a]/60 p-5 text-center">
+            <div class="mx-auto w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border border-white/10 flex items-center justify-center text-cyan-300">
+              <i data-lucide="{{ icon }}" class="w-5 h-5"></i>
+            </div>
+            <div class="mt-4 text-sm font-semibold text-slate-100">{{ label }}</div>
+            <div class="mt-1 text-[11px] font-mono text-slate-500">{{ note }}</div>
+            {% if not loop.last %}
+            <i data-lucide="arrow-right" class="hidden lg:block absolute top-1/2 -right-4 w-4 h-4 text-slate-600 -translate-y-1/2"></i>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-5 sm:px-8 py-20 lg:py-28">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+      <div class="reveal">
+        <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-emerald-400">
+          <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Workflow
+        </div>
+        <h2 class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight">
+          Four steps from question to corridor
+        </h2>
+        <p class="mt-4 text-slate-400 leading-relaxed max-w-md">
+          The console is built to feel light and direct — no clutter, no dead ends. Move from a
+          city pair to a fully explained recommendation in seconds.
+        </p>
+        <a
+          href="/app/routes"
+          class="mt-8 inline-flex items-center gap-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 px-5 py-3 text-sm font-semibold text-slate-100 transition-colors"
+        >
+          Try the optimizer <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+
+      <div class="space-y-4">
+        {% for n, title, desc in steps %}
+        <div class="reveal" data-delay="{{ loop.index0 * 80 }}">
+          <div class="flex gap-5 rounded-2xl border border-white/8 bg-white/[0.02] p-5 hover:border-cyan-400/25 transition-colors">
+            <div class="text-2xl font-bold font-mono text-cyan-400/70 shrink-0">{{ n }}</div>
+            <div>
+              <div class="font-semibold text-slate-100">{{ title }}</div>
+              <div class="mt-1 text-sm text-slate-400 leading-relaxed">{{ desc }}</div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-5 sm:px-8 pb-20">
+    <div class="reveal">
+      <div class="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.07] to-transparent p-8 sm:p-10">
+        <div class="flex flex-col sm:flex-row items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-400/25 flex items-center justify-center text-amber-300 shrink-0">
+            <i data-lucide="shield-check" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-slate-100">Academic decision-support prototype</h3>
+            <p class="mt-3 text-sm text-slate-400 leading-relaxed max-w-3xl">
+              AeroRoute AI is <strong class="text-slate-200">not certified aviation software</strong>.
+              It holds no ATC authority, flight-dispatch clearance or avionics guarantees. All paths,
+              risk indices and predictions are research and educational estimates built on bundled
+              local snapshots — not live provider feeds.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="relative mx-auto max-w-7xl px-5 sm:px-8 pb-24">
+    <div class="reveal">
+      <div class="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-500/[0.12] via-indigo-500/[0.08] to-violet-500/[0.12] p-10 sm:p-14 text-center">
+        <div class="absolute inset-0 grid-overlay opacity-60"></div>
+        <div class="relative">
+          <div class="mx-auto w-14 h-14 rounded-2xl bg-cyan-500/15 border border-cyan-400/25 flex items-center justify-center text-cyan-300 animate-pulse-ring">
+            <i data-lucide="plane" class="w-6 h-6 -rotate-45"></i>
+          </div>
+          <h2 class="mt-6 text-3xl sm:text-4xl font-bold tracking-tight">
+            Ready to optimize your first corridor?
+          </h2>
+          <p class="mt-4 text-slate-400 max-w-xl mx-auto">
+            Open the operations console and run a multi-objective route in under a minute.
+          </p>
+          <div class="mt-8 flex flex-wrap justify-center gap-3">
+            <a
+              href="/app/dashboard"
+              class="inline-flex items-center gap-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition-all hover:scale-[1.02] shadow-lg shadow-cyan-500/25"
+            >
+              Launch Console <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+            <a
+              href="/docs"
+              class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] px-6 py-3 text-sm font-semibold text-slate-200 transition-colors"
+            >
+              Read the Docs
+            </a>
+          </div>
+          <div class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-500 font-mono">
+            <span class="inline-flex items-center gap-1.5">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> 21 hub nodes
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i data-lucide="git-branch" class="w-3.5 h-3.5"></i> Dijkstra & A*
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i data-lucide="cpu" class="w-3.5 h-3.5"></i> Deterministic scoring
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

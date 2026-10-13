@@ -1,0 +1,129 @@
+{% extends 'base_public.html' %}
+
+{% block title %}About · {{ app_name }}{% endblock %}
+
+{% block content %}
+{% set stack = [
+  ('Frontend', ['React 19', 'TypeScript', 'Vite', 'Tailwind CSS', 'React Router']),
+  ('Visualization', ['Leaflet', 'Recharts', 'Lucide Icons', 'Motion']),
+  ('Backend', ['Express', 'TypeScript', 'Custom Dijkstra / A*', 'Deterministic scoring']),
+  ('Data', ['BTS flight snapshots', 'NOAA METAR snapshots', 'FAA hub reference', 'JSON in-memory store'])
+] %}
+{% set scope = [
+  'Graph-based multi-objective route optimization',
+  'Explainable decision factors for each recommendation',
+  'Derived weather, congestion and delay-risk proxies',
+  'Algorithm benchmarking between Dijkstra and A*',
+  'Full-stack observability and structured logging'
+] %}
+<div>
+  <section class="relative border-b border-white/5">
+    <div class="absolute inset-0 aurora opacity-60"></div>
+    <div class="absolute inset-0 grid-overlay"></div>
+    <div class="relative mx-auto max-w-7xl px-5 sm:px-8 py-16 lg:py-20">
+      <div class="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/5 px-3.5 py-1.5 text-xs font-medium text-cyan-300">
+        <i data-lucide="target" class="w-3.5 h-3.5"></i> About the project
+      </div>
+      <h1 class="mt-6 text-4xl sm:text-5xl font-bold tracking-tight max-w-3xl">
+        An academic lab for <span class="text-gradient">transparent aviation decisions</span>
+      </h1>
+      <p class="mt-5 text-slate-400 max-w-2xl leading-relaxed">
+        AeroRoute AI demonstrates how competing operational objectives can be modeled, optimized
+        and explained — without hiding the mechanics behind a black box.
+      </p>
+    </div>
+  </section>
+
+  <section id="scope" class="mx-auto max-w-7xl px-5 sm:px-8 py-16 lg:py-24 grid lg:grid-cols-2 gap-14 scroll-mt-24">
+    <div class="reveal" data-delay="0">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-400/20 flex items-center justify-center text-emerald-300">
+          <i data-lucide="target" class="w-5 h-5"></i>
+        </div>
+        <h2 class="text-2xl font-bold tracking-tight text-slate-100">Project scope</h2>
+      </div>
+      <p class="mt-5 text-slate-400 leading-relaxed">
+        The prototype focuses on clarity and reproducibility. Every number shown in the console can
+        be traced to a bundled dataset, a normalized cost term, or a documented formula.
+      </p>
+      <ul class="mt-6 space-y-3">
+        {% for s in scope %}
+        <li class="flex items-start gap-3 text-sm text-slate-300">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 mt-0.5 shrink-0"></i>
+          {{ s }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="reveal" data-delay="100">
+      <div class="rounded-3xl border border-white/8 bg-white/[0.02] p-7">
+        <h3 class="font-semibold text-slate-100">Technology stack</h3>
+        <div class="mt-5 space-y-5">
+          {% for t, items in stack %}
+          <div>
+            <div class="text-xs font-mono uppercase tracking-widest text-slate-500">{{ t }}</div>
+            <div class="mt-2 flex flex-wrap gap-2">
+              {% for it in items %}
+              <span class="rounded-lg border border-white/8 bg-white/[0.03] px-2.5 py-1 text-xs text-slate-300">
+                {{ it }}
+              </span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="border-y border-white/5 bg-white/[0.015] py-16 lg:py-20">
+    <div class="mx-auto max-w-7xl px-5 sm:px-8 grid sm:grid-cols-3 gap-6">
+      {% set cards = [
+        ('cpu', 'Explainable by design', 'Recommendations ship with human-readable decision factors, not just scores.'),
+        ('database', 'Reproducible data', 'Bundled snapshots mean demos behave identically on every machine.'),
+        ('layers', 'Modular console', 'Eight focused modules share one API and one consistent design language.')
+      ] %}
+      {% for icon, t, d in cards %}
+      <div class="reveal" data-delay="{{ loop.index0 * 80 }}">
+        <div class="rounded-2xl border border-white/8 bg-[#0a0f1a]/60 p-6 h-full">
+          <div class="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-300">
+            <i data-lucide="{{ icon }}" class="w-5 h-5"></i>
+          </div>
+          <div class="mt-4 font-semibold text-slate-100">{{ t }}</div>
+          <div class="mt-1.5 text-sm text-slate-400 leading-relaxed">{{ d }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section id="disclaimer" class="mx-auto max-w-7xl px-5 sm:px-8 py-16 lg:py-24 scroll-mt-24">
+    <div class="reveal" data-delay="0">
+      <div class="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.08] to-transparent p-8 sm:p-10">
+        <div class="flex flex-col sm:flex-row items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-400/25 flex items-center justify-center text-amber-300 shrink-0">
+            <i data-lucide="shield-alert" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-slate-100">Academic safety boundary</h2>
+            <p class="mt-3 text-sm text-slate-400 leading-relaxed max-w-3xl">
+              AeroRoute AI is strictly an academic decision-support prototype and is
+              <strong class="text-slate-200">not certified under FAA Part 121 / 135 or ICAO standards</strong>.
+              Real-world operations additionally require convective SIGMETs, TAF forecasts, PIREPs
+              and sector-level airspace constraints. Use this project for study, benchmarking and
+              demonstration only.
+            </p>
+            <a
+              href="/app/system"
+              class="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] px-5 py-2.5 text-sm font-semibold text-slate-100 transition-colors"
+            >
+              View live system health <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

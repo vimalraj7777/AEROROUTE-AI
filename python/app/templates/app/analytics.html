@@ -1,0 +1,236 @@
+{% extends 'base_app.html' %}
+{% block content %}
+{% set leader = (summary.carrier_performance | sort(attribute='onTimePct') | last) if summary.carrier_performance else None %}
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+  <div>
+    <div class="flex items-center gap-2">
+      <h1 class="text-xl font-bold font-mono tracking-tight text-slate-100">
+        AVIATION OPERATIONS ANALYTICS & TRENDS
+      </h1>
+      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-500/30">
+        TRANSTATS & NAS METRICS
+      </span>
+    </div>
+    <p class="text-xs text-slate-400 font-mono mt-1">
+      Empirical statistical distributions of delay severity, carrier punctuality, and terminal throughput.
+    </p>
+  </div>
+
+  <button
+    onclick="exportAnalyticsCsv()"
+    class="flex items-center gap-2 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-mono text-xs transition-colors cursor-pointer"
+  >
+    <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-400"></i>
+    <span>EXPORT CSV</span>
+  </button>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">AGGREGATE FLIGHT CORPUS</div>
+    <div class="text-2xl font-bold text-slate-100 mt-1">
+      {{ summary.total_flights_analyzed }} <span class="text-xs font-normal text-slate-500">Tracked Operations</span>
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">CARRIER ON-TIME LEADER (IN DATA)</div>
+    <div class="text-2xl font-bold text-emerald-400 mt-1">
+      {{ leader.carrier if leader else '--' }}{' '}
+      <span class="text-xs font-normal text-slate-500">
+        ({{ leader.onTimePct if leader else 0 }}% · {{ leader.total if leader else 0 }} flights)
+      </span>
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded">
+    <div class="text-xs text-slate-500">MONITORED NAS HUBS</div>
+    <div class="text-2xl font-bold text-cyan-400 mt-1">
+      {{ summary.airports_monitored }} <span class="text-xs font-normal text-slate-500">Class B/C Hubs</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <h2 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200">
+        Delay Severity Category Distribution
+      </h2>
+      <span class="text-[10px] font-mono text-slate-500">5-Tier Scheme</span>
+    </div>
+
+    <div class="h-64">
+      <canvas id="delaySeverityChart"></canvas>
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <h2 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200">
+        Major Carrier On-Time Performance (%)
+      </h2>
+      <span class="text-[10px] font-mono text-slate-500">Historical Benchmarks</span>
+    </div>
+
+    <div class="h-64">
+      <canvas id="carrierOnTimeChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+  <h3 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200">
+    Carrier Reliability Matrix
+  </h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left font-mono text-xs">
+      <thead>
+        <tr class="text-slate-500 border-b border-slate-800">
+          <th class="py-2">CARRIER</th>
+          <th class="py-2">SAMPLED FLIGHTS</th>
+          <th class="py-2">ON-TIME PERFORMANCE</th>
+          <th class="py-2">AVG DELAY (MINUTES)</th>
+          <th class="py-2">NETWORK STATUS</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800">
+        {% if summary.carrier_performance %}
+        {% for c in summary.carrier_performance %}
+        <tr class="hover:bg-slate-900/40 text-slate-300">
+          <td class="py-2.5 font-bold text-cyan-400">{{ c.carrier }}</td>
+          <td class="py-2.5 text-slate-400">{{ c.total }}</td>
+          <td class="py-2.5 font-bold text-emerald-400">{{ c.onTimePct }}%</td>
+          <td class="py-2.5 text-slate-200">{{ c.avgDelayMin }}m</td>
+          <td class="py-2.5">
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+              Standard Ops
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="5" class="py-3 text-slate-500">No carrier records available.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const summary = {{ summary | tojson }};
+
+  window.exportAnalyticsCsv = function () {
+    let csv = 'Carrier,Total_Flights,On_Time_Percent,Avg_Delay_Min\n';
+    summary.carrier_performance.forEach(function (c) {
+      csv += c.carrier + ',' + c.total + ',' + c.onTimePct + '%,' + c.avgDelayMin + '\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'aeroroute_carrier_analytics.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  };
+
+  window.AeroRouteCharts = {
+    init: function () {
+      const gridColor = '#1e293b';
+      const tickColor = '#94a3b8';
+
+      const delayEl = document.getElementById('delaySeverityChart');
+      if (delayEl) {
+        new Chart(delayEl, {
+          type: 'bar',
+          data: {
+            labels: summary.delay_buckets.map(function (b) { return b.label; }),
+            datasets: [{
+              label: 'Flights',
+              data: summary.delay_buckets.map(function (b) { return b.count; }),
+              backgroundColor: summary.delay_buckets.map(function (b) { return b.color; }),
+              borderRadius: 4,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#070a0f',
+                borderColor: '#334155',
+                borderWidth: 1,
+                titleColor: '#38bdf8',
+                bodyColor: '#38bdf8',
+                titleFont: { family: 'monospace', size: 11 },
+                bodyFont: { family: 'monospace', size: 11 },
+              },
+            },
+            scales: {
+              x: {
+                grid: { color: gridColor, borderColor: gridColor },
+                ticks: { color: tickColor, font: { family: 'monospace', size: 10 } },
+              },
+              y: {
+                grid: { color: gridColor, borderColor: gridColor },
+                ticks: { color: tickColor, font: { family: 'monospace', size: 10 } },
+              },
+            },
+          },
+        });
+      }
+
+      const carrierEl = document.getElementById('carrierOnTimeChart');
+      if (carrierEl) {
+        new Chart(carrierEl, {
+          type: 'bar',
+          data: {
+            labels: summary.carrier_performance.map(function (c) { return c.carrier; }),
+            datasets: [{
+              label: 'On-Time %',
+              data: summary.carrier_performance.map(function (c) { return c.onTimePct; }),
+              backgroundColor: '#06b6d4',
+              borderRadius: 4,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#070a0f',
+                borderColor: '#334155',
+                borderWidth: 1,
+                titleColor: '#38bdf8',
+                bodyColor: '#38bdf8',
+                titleFont: { family: 'monospace', size: 11 },
+                bodyFont: { family: 'monospace', size: 11 },
+              },
+            },
+            scales: {
+              x: {
+                grid: { color: gridColor, borderColor: gridColor },
+                ticks: { color: tickColor, font: { family: 'monospace', size: 11 } },
+              },
+              y: {
+                min: 0,
+                max: 100,
+                grid: { color: gridColor, borderColor: gridColor },
+                ticks: { color: tickColor, font: { family: 'monospace', size: 10 } },
+              },
+            },
+          },
+        });
+      }
+    },
+  };
+</script>
+{% endblock %}

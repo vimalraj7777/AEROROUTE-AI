@@ -1,0 +1,182 @@
+{
+  "target": "delay_severity_class",
+  "classes": [
+    {
+      "class_id": 0,
+      "label": "On-Time / Early (<= 0 min)",
+      "code": "ON_TIME"
+    },
+    {
+      "class_id": 1,
+      "label": "Minor Delay (1-15 min)",
+      "code": "MINOR_DELAY"
+    },
+    {
+      "class_id": 2,
+      "label": "Moderate Delay (16-45 min)",
+      "code": "MODERATE_DELAY"
+    },
+    {
+      "class_id": 3,
+      "label": "Severe Delay (> 45 min)",
+      "code": "SEVERE_DELAY"
+    },
+    {
+      "class_id": 4,
+      "label": "Cancelled / Diverted",
+      "code": "CANCELLED_DIVERTED"
+    }
+  ],
+  "features": [
+    {
+      "name": "origin_delay_rate",
+      "type": "float",
+      "description": "Historical mean departure delay (min) at origin hub, learned on the training split",
+      "min": 12.085,
+      "max": 25.377,
+      "mean": 18.0161
+    },
+    {
+      "name": "dest_delay_rate",
+      "type": "float",
+      "description": "Historical mean arrival delay (min) at destination hub, learned on the training split",
+      "min": 12.907,
+      "max": 26.72,
+      "mean": 18.0161
+    },
+    {
+      "name": "carrier_delay_rate",
+      "type": "float",
+      "description": "Historical mean arrival delay (min) for the operating carrier, learned on the training split",
+      "min": 11.512,
+      "max": 54.583,
+      "mean": 18.016
+    },
+    {
+      "name": "carrier_weather_rate",
+      "type": "float",
+      "description": "Carrier historical mean weather-attributed delay (min)",
+      "min": 1.251,
+      "max": 319.5,
+      "mean": 6.062
+    },
+    {
+      "name": "carrier_nas_rate",
+      "type": "float",
+      "description": "Carrier historical mean NAS/airspace-attributed delay (min)",
+      "min": 8.0,
+      "max": 27.673,
+      "mean": 14.6107
+    },
+    {
+      "name": "carrier_late_aircraft_rate",
+      "type": "float",
+      "description": "Carrier historical mean late-aircraft (propagated) delay (min)",
+      "min": 0.0,
+      "max": 44.584,
+      "mean": 27.7914
+    },
+    {
+      "name": "route_delay_rate",
+      "type": "float",
+      "description": "Historical mean arrival delay (min) for this specific origin-destination pair",
+      "min": 0.0,
+      "max": 56.036,
+      "mean": 18.0161
+    },
+    {
+      "name": "departure_hour_utc",
+      "type": "int",
+      "description": "Scheduled departure hour in Coordinated Universal Time (0-23)",
+      "min": 0.0,
+      "max": 23.0,
+      "mean": 13.7253
+    },
+    {
+      "name": "day_of_week",
+      "type": "int",
+      "description": "Day of week (1=Monday, 7=Sunday)",
+      "min": 1.0,
+      "max": 7.0,
+      "mean": 3.8047
+    },
+    {
+      "name": "scheduled_distance_nm",
+      "type": "float",
+      "description": "Great-circle nautical miles between origin and destination",
+      "min": 80.0,
+      "max": 2724.0,
+      "mean": 1082.0184
+    },
+    {
+      "name": "origin_weather_risk",
+      "type": "float",
+      "description": "Origin composite METAR severity index (0-100) matched to departure time",
+      "min": 6.25,
+      "max": 81.25,
+      "mean": 21.7374
+    },
+    {
+      "name": "dest_weather_risk",
+      "type": "float",
+      "description": "Destination composite METAR severity index (0-100) matched to arrival time",
+      "min": 6.25,
+      "max": 81.25,
+      "mean": 21.5278
+    },
+    {
+      "name": "origin_congestion_index",
+      "type": "float",
+      "description": "Origin hourly operations-to-capacity load factor (0-100)",
+      "min": 28.5,
+      "max": 88.5,
+      "mean": 57.1734
+    },
+    {
+      "name": "dest_congestion_index",
+      "type": "float",
+      "description": "Destination hourly operations-to-capacity load factor (0-100)",
+      "min": 28.5,
+      "max": 88.5,
+      "mean": 57.2047
+    },
+    {
+      "name": "origin_ifr_rate",
+      "type": "float",
+      "description": "Share of origin observations in degraded IMC/IFR conditions (0-1)",
+      "min": 0.0013,
+      "max": 0.1707,
+      "mean": 0.0496
+    },
+    {
+      "name": "dest_ifr_rate",
+      "type": "float",
+      "description": "Share of destination observations in degraded IMC/IFR conditions (0-1)",
+      "min": 0.0013,
+      "max": 0.1707,
+      "mean": 0.0497
+    }
+  ],
+  "categorical_mappings": {
+    "carrier": {
+      "9E": 20.36,
+      "AA": 24.126,
+      "AS": 15.259,
+      "B6": 23.116,
+      "DL": 14.189,
+      "F9": 22.215,
+      "G4": 54.583,
+      "MQ": 21.864,
+      "NK": 18.108,
+      "OH": 20.41,
+      "OO": 18.896,
+      "UA": 16.365,
+      "WN": 14.068,
+      "YX": 11.512
+    }
+  },
+  "data_source_files": [
+    "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2024_1.csv",
+    "metar_asos_2024_01.csv"
+  ]
+}

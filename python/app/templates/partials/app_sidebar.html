@@ -1,0 +1,74 @@
+{% macro nav_content(collapsed=false, mobile=false) %}
+  {% set sections = [
+    ('Overview', [
+      ('dashboard', '/app/dashboard', 'Dashboard', 'layout-dashboard', ''),
+      ('network', '/app/network', 'Network Map', 'network', '')
+    ]),
+    ('Intelligence', [
+      ('flights', '/app/flights', 'Flight Intel', 'plane', ''),
+      ('weather', '/app/weather', 'Weather Intel', 'cloud-rain', ''),
+      ('congestion', '/app/congestion', 'Congestion', 'gauge', ''),
+      ('analytics', '/app/analytics', 'Analytics', 'bar-chart-3', '')
+    ]),
+    ('Optimization', [
+      ('routes', '/app/routes', 'Route Optimizer', 'navigation', 'A*')
+    ]),
+    ('Platform', [
+      ('model', '/app/model', 'Model Metrics', 'cpu', 'ART'),
+      ('system', '/app/system', 'System Health', 'server', '')
+    ])
+  ] %}
+  <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+    {% for title, items in sections %}
+    <div class="space-y-1">
+      <div class="px-3 pb-1.5 text-[10px] font-mono uppercase tracking-widest text-slate-600 {% if collapsed %}hidden{% endif %}" {% if not mobile %}data-collapse-hide{% endif %}>{{ title }}</div>
+      {% for key, href, label, icon, badge in items %}
+      {% set is_active = (page == key) %}
+      <a href="{{ href }}" title="{{ label }}"
+         class="group relative flex items-center {% if collapsed %}justify-center{% else %}justify-between{% endif %} gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors {% if is_active %}bg-cyan-500/10 text-cyan-300{% else %}text-slate-400 hover:text-slate-100 hover:bg-white/5{% endif %}">
+        {% if is_active %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-cyan-400"></span>{% endif %}
+        <span class="flex items-center gap-3 min-w-0">
+          <i data-lucide="{{ icon }}" class="w-[18px] h-[18px] shrink-0 {% if is_active %}text-cyan-400{% endif %}"></i>
+          <span class="truncate font-medium {% if collapsed %}hidden{% endif %}" {% if not mobile %}data-collapse-hide{% endif %}>{{ label }}</span>
+        </span>
+        {% if badge and not collapsed %}
+        <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/10 font-mono" {% if not mobile %}data-collapse-hide{% endif %}>{{ badge }}</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </nav>
+{% endmacro %}
+
+<aside data-sidebar class="hidden lg:flex flex-col shrink-0 border-r border-white/5 bg-[#070a0f] overflow-hidden transition-[width] duration-200" style="width:256px">
+  <div class="h-16 shrink-0 px-4 flex items-center justify-between border-b border-white/5">
+    <span data-collapse-hide class="text-[10px] font-mono uppercase tracking-widest text-slate-500">Modules</span>
+    <button data-collapse-toggle class="hidden lg:flex p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors" title="Toggle sidebar">
+      <i data-lucide="panel-left-open" data-collapse-open-icon class="w-4 h-4 hidden"></i>
+      <i data-lucide="panel-left-close" data-collapse-close-icon class="w-4 h-4"></i>
+    </button>
+  </div>
+  {{ nav_content(collapsed=false, mobile=false) }}
+  <div class="p-3 border-t border-white/5">
+    <div data-collapse-hide class="rounded-xl bg-white/[0.03] border border-white/5 p-3 space-y-1.5">
+      <div class="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+        <i data-lucide="terminal" class="w-3.5 h-3.5 text-cyan-400"></i>
+        OPERATIONAL CONTEXT
+      </div>
+      <p class="text-[10px] leading-relaxed text-slate-500">
+        Academic decision-support prototype. Non-operational environment; derived proxies are clearly distinguished from stored observations.
+      </p>
+    </div>
+  </div>
+</aside>
+
+<div data-sidebar-overlay class="hidden lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"></div>
+<aside data-mobile-drawer class="hidden lg:hidden fixed inset-y-0 left-0 z-50 w-72 -translate-x-full border-r border-white/10 bg-[#070a0f] flex flex-col">
+  <div class="h-16 shrink-0 px-4 flex items-center justify-end border-b border-white/5">
+    <button data-sidebar-close class="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/5" title="Close menu">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+  </div>
+  {{ nav_content(collapsed=false, mobile=true) }}
+</aside>

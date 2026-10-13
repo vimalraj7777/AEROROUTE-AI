@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <meta name="description" content="Aviation operations & route intelligence. Graph-based Dijkstra / A* optimization with explainable delay-risk scoring." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/app.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-[#05070c] text-slate-100 font-display flex flex-col relative" data-page="{{ active|default('') }}">
+  <div class="bg-stage" aria-hidden="true">
+    <div class="grid-plane"></div>
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="orb o3"></div>
+  </div>
+  <div id="scroll-progress" aria-hidden="true"></div>
+  <div id="cursor-glow" aria-hidden="true"></div>
+  {% include 'partials/public_nav.html' %}
+  <main class="flex-1 pt-16 page-enter">
+    {% block content %}{% endblock %}
+  </main>
+  {% include 'partials/public_footer.html' %}
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="{{ request.url_for('static', path='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

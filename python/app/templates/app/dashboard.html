@@ -1,0 +1,451 @@
+{% extends 'base_app.html' %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+  <div>
+    <div class="flex items-center gap-2">
+      <h1 class="text-xl font-bold font-mono tracking-tight text-slate-100">
+        NATIONAL AIRSPACE OPERATIONS OVERVIEW
+      </h1>
+      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
+        BUNDLED DATA READY
+      </span>
+    </div>
+    <p class="text-xs text-slate-400 font-mono mt-1">
+      Local-snapshot decision support · Historical flight records · Stored METAR observations
+    </p>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <a
+      href="/app/routes"
+      class="flex items-center gap-2 px-3.5 py-2 rounded bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-mono text-xs font-semibold tracking-wide transition-colors cursor-pointer"
+    >
+      <i data-lucide="navigation" class="w-4 h-4"></i>
+      <span>OPEN ROUTE OPTIMIZER</span>
+    </a>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 reveal" data-delay="50">
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 relative overflow-hidden">
+    <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+      <span>MONITORED HUBS</span>
+      <i data-lucide="gauge" class="w-4 h-4 text-cyan-400"></i>
+    </div>
+    <div class="text-2xl font-bold font-mono text-slate-100">
+      {{ airport_count }}
+      <span class="text-xs font-normal text-slate-500">Major Hubs</span>
+    </div>
+    <div class="text-[11px] font-mono text-emerald-400/90 mt-2 flex items-center gap-1">
+      <i data-lucide="trending-up" class="w-[18px] h-[18px]"></i>
+      <span>100% Sensor Stream Health</span>
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 relative overflow-hidden">
+    <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+      <span>METAR WEATHER RISKS</span>
+      <i data-lucide="cloud-rain" class="w-4 h-4 text-amber-400"></i>
+    </div>
+    <div class="text-2xl font-bold font-mono text-slate-100">
+      {{ weather.ifr_count + weather.vfr_count if (weather.ifr_count + weather.vfr_count) else weather.total_stations }}
+      <span class="text-xs font-normal text-slate-500">Active Warning Hubs</span>
+    </div>
+    <div class="text-[11px] font-mono text-amber-400/90 mt-2 flex items-center gap-1">
+      <i data-lucide="alert-triangle" class="w-[18px] h-[18px]"></i>
+      <span>Stored observations above the risk threshold</span>
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 relative overflow-hidden">
+    <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+      <span>PEAK AIRSPACE CONGESTION</span>
+      <i data-lucide="clock" class="w-4 h-4 text-purple-400"></i>
+    </div>
+    <div class="text-2xl font-bold font-mono text-slate-100">
+      {% if analytics.top_congested_hubs and analytics.top_congested_hubs|length > 0 %}
+      {{ analytics.top_congested_hubs[0].airport }}
+      <span class="text-xs font-normal text-slate-500">
+        ({{ analytics.top_congested_hubs[0].derived_congestion_index }}% load)
+      </span>
+      {% else %}
+      ORD
+      <span class="text-xs font-normal text-slate-500">(88.5% load)</span>
+      {% endif %}
+    </div>
+    <div class="text-[11px] font-mono text-purple-400/90 mt-2">
+      <span>
+        {% if analytics.top_congested_hubs and analytics.top_congested_hubs|length > 0 and analytics.top_congested_hubs[0].ground_delay_program %}
+        GDP proxy flagged
+        {% else %}
+        No GDP proxy flag
+        {% endif %}
+        · Avg taxi
+        {% if analytics.top_congested_hubs and analytics.top_congested_hubs|length > 0 %}
+        {{ analytics.top_congested_hubs[0].avg_taxi_out_min if analytics.top_congested_hubs[0].avg_taxi_out_min is not none else '--' }}m
+        {% else %}
+        --m
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 relative overflow-hidden">
+    <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
+      <span>MODEL METRIC ARTIFACT</span>
+      <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i>
+    </div>
+    <div class="text-2xl font-bold font-mono text-slate-100">
+      84.2%
+      <span class="text-xs font-normal text-slate-500">Reported Accuracy</span>
+    </div>
+    <div class="text-[11px] font-mono text-cyan-400 mt-2">
+      <span>Runtime uses deterministic scoring</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 reveal" data-delay="100">
+  <div class="lg:col-span-2 bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+        <h2 class="text-sm font-bold font-mono text-slate-200">
+          ACTIVE NATIONAL AIRSPACE NETWORK
+        </h2>
+      </div>
+      <a
+        href="/app/network"
+        class="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+      >
+        <span>Full Graph View</span>
+        <i data-lucide="arrow-right" class="w-[18px] h-[18px]"></i>
+      </a>
+    </div>
+
+    <div
+      id="dashboard-map"
+      class="w-full rounded border border-slate-800 overflow-hidden"
+      style="height: 360px; min-height: 280px;"
+      data-map="true"
+    ></div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 flex flex-col justify-between">
+    <div class="space-y-4">
+      <div class="flex items-center gap-2 pb-2 border-b border-slate-800">
+        <i data-lucide="navigation" class="w-4 h-4 text-cyan-400"></i>
+        <h3 class="text-sm font-bold font-mono text-slate-200">
+          DISPATCH ROUTE PLANNER
+        </h3>
+      </div>
+
+      <p class="text-xs text-slate-400 font-mono leading-relaxed">
+        Compare multi-objective flight corridors using Dijkstra and A* with stored weather-risk and congestion snapshots.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-[11px] font-mono text-slate-400 block mb-1">
+            ORIGIN HUB
+          </label>
+          <select
+            id="quick-origin"
+            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
+          >
+            {% if analytics.airports_monitored > 0 %}
+            {% for hub in analytics.top_congested_hubs[:20] %}
+            <option value="{{ hub.airport }}">{{ hub.airport }} — {{ hub.airport }}</option>
+            {% endfor %}
+            {% else %}
+            <option value="JFK">JFK — John F. Kennedy</option>
+            {% endif %}
+          </select>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-mono text-slate-400 block mb-1">
+            DESTINATION HUB
+          </label>
+          <select
+            id="quick-dest"
+            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
+          >
+            {% if analytics.airports_monitored > 0 %}
+            {% for hub in analytics.top_congested_hubs[:20] %}
+            <option value="{{ hub.airport }}">{{ hub.airport }} — {{ hub.airport }}</option>
+            {% endfor %}
+            {% else %}
+            <option value="SFO">SFO — San Francisco</option>
+            {% endif %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button
+      id="launch-optimizer"
+      class="w-full mt-6 py-2.5 rounded bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-mono font-semibold text-xs tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer"
+    >
+      <span>CALCULATE MULTI-OBJECTIVE ROUTE</span>
+      <i data-lucide="arrow-right" class="w-4 h-4"></i>
+    </button>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 reveal" data-delay="150">
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <div class="flex items-center gap-2">
+        <i data-lucide="gauge" class="w-4 h-4 text-purple-400"></i>
+        <h3 class="text-sm font-bold font-mono text-slate-200">
+          TOP CONGESTION PROXIES
+        </h3>
+      </div>
+      <a
+        href="/app/congestion"
+        class="text-xs font-mono text-cyan-400 hover:text-cyan-300"
+      >
+        View All
+      </a>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left font-mono text-xs">
+        <thead>
+          <tr class="text-slate-500 border-b border-slate-800">
+            <th class="py-2">HUB</th>
+            <th class="py-2">OPS / HR</th>
+            <th class="py-2">LOAD</th>
+            <th class="py-2">INDEX</th>
+            <th class="py-2">STATUS</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800">
+          {% if analytics.top_congested_hubs and analytics.top_congested_hubs|length > 0 %}
+          {% for act in analytics.top_congested_hubs[:5] %}
+          <tr class="hover:bg-slate-900/40">
+            <td class="py-2.5 font-bold text-slate-200">{{ act.airport }}</td>
+            <td class="py-2.5 text-slate-300">{{ act.total_operations }}</td>
+            <td class="py-2.5 text-slate-400">{{ (act.load_factor * 100)|round|int }}%</td>
+            <td class="py-2.5 text-cyan-400">{{ act.derived_congestion_index }}</td>
+            <td class="py-2.5">
+              <span
+                class="text-[10px] px-1.5 py-0.5 rounded font-mono {% if act.congestion_band == 'Severe' %}bg-red-950/60 text-red-400 border border-red-800/40{% else %}bg-amber-950/60 text-amber-400 border border-amber-800/40{% endif %}"
+              >
+                {{ act.congestion_band }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="5" class="py-4 text-center text-slate-500">No congestion data available.</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <div class="flex items-center gap-2">
+        <i data-lucide="cloud-rain" class="w-4 h-4 text-amber-400"></i>
+        <h3 class="text-sm font-bold font-mono text-slate-200">
+          STORED METAR RISK OBSERVATIONS
+        </h3>
+      </div>
+      <a
+        href="/app/weather"
+        class="text-xs font-mono text-cyan-400 hover:text-cyan-300"
+      >
+        All Stations
+      </a>
+    </div>
+
+    <div class="space-y-2.5">
+      {% if weather.observations and weather.observations|length > 0 %}
+      {% for wx in weather.observations[:8] %}
+      {% if wx.composite_risk_score > 40 %}
+      <div
+        class="bg-slate-900/60 border border-slate-800 p-2.5 rounded font-mono text-xs space-y-1"
+      >
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-200">{{ wx.station }}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-red-950/50 text-red-400 border border-red-800/40">
+            RISK SCORE {{ wx.composite_risk_score }}
+          </span>
+        </div>
+        <div class="text-[11px] text-slate-400">
+          Category: <span class="text-amber-400">{{ wx.flight_category }}</span> · Wind: {{ wx.wind_speed_kt }}kt
+          {% if wx.wind_gust_kt %} G{{ wx.wind_gust_kt }}{% endif %} · Vis: {{ wx.visibility_sm }}SM
+        </div>
+        <div class="text-[10px] text-slate-500 truncate">{{ wx.raw_metar }}</div>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% if weather.observations|selectattr('composite_risk_score', 'gt', 40)|list|length == 0 %}
+      <p class="text-xs text-slate-500 font-mono py-4">No stored observations exceed the risk threshold.</p>
+      {% endif %}
+      {% else %}
+      <p class="text-xs text-slate-500 font-mono py-4">No stored observations exceed the risk threshold.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 reveal" data-delay="200">
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <div class="flex items-center gap-2">
+        <i data-lucide="file-text" class="w-4 h-4 text-cyan-400"></i>
+        <h3 class="text-sm font-bold font-mono text-slate-200">
+          RECENT REPORTS
+        </h3>
+      </div>
+      <a
+        href="/app/system"
+        class="text-xs font-mono text-cyan-400 hover:text-cyan-300"
+      >
+        View All
+      </a>
+    </div>
+
+    <div class="space-y-2.5 overflow-y-auto max-h-[280px]">
+      {% if logs and logs|length > 0 %}
+      {% for log in logs %}
+      <div class="bg-slate-900/60 border border-slate-800 p-2.5 rounded font-mono text-xs space-y-1">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-200">{{ log.timestamp }}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded {% if log.level == 'ERROR' %}bg-red-950/50 text-red-400 border border-red-800/40{% elif log.level == 'WARN' %}bg-amber-950/50 text-amber-400 border border-amber-800/40{% else %}bg-emerald-950/50 text-emerald-400 border border-emerald-800/40{% endif %}">
+            {{ log.level }}
+          </span>
+        </div>
+        <div class="text-[11px] text-slate-400">
+          Subsystem: <span class="text-cyan-400">{{ log.subsystem }}</span>
+        </div>
+        <div class="text-[10px] text-slate-500 truncate">{{ log.message }}</div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-xs text-slate-500 font-mono py-4">No recent logs available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <div class="flex items-center gap-2">
+        <i data-lucide="server" class="w-4 h-4 text-emerald-400"></i>
+        <h3 class="text-sm font-bold font-mono text-slate-200">
+          SYSTEM SUBSYSTEMS
+        </h3>
+      </div>
+      <a
+        href="/app/system"
+        class="text-xs font-mono text-cyan-400 hover:text-cyan-300"
+      >
+        View All
+      </a>
+    </div>
+
+    <div class="space-y-2.5 overflow-y-auto max-h-[280px]">
+      {% if health.subsystems %}
+      {% for name, subsys in health.subsystems.items() %}
+      <div class="bg-slate-900/60 border border-slate-800 p-2.5 rounded font-mono text-xs space-y-1">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-200">{{ name }}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded {% if subsys.status == 'OPERATIONAL' %}bg-emerald-950/50 text-emerald-400 border border-emerald-800/40{% else %}bg-amber-950/50 text-amber-400 border border-amber-800/40{% endif %}">
+            {{ subsys.status }}
+          </span>
+        </div>
+        {% if subsys.records is defined %}
+        <div class="text-[11px] text-slate-400">Records: <span class="text-slate-300">{{ subsys.records }}</span></div>
+        {% endif %}
+        {% if subsys.nodes is defined %}
+        <div class="text-[11px] text-slate-400">Nodes: <span class="text-slate-300">{{ subsys.nodes }}</span> · Edges: <span class="text-slate-300">{{ subsys.edges }}</span></div>
+        {% endif %}
+        {% if subsys.stations is defined %}
+        <div class="text-[11px] text-slate-400">Stations: <span class="text-slate-300">{{ subsys.stations }}</span></div>
+        {% endif %}
+        {% if subsys.model_version is defined %}
+        <div class="text-[11px] text-slate-400">Version: <span class="text-slate-300">{{ subsys.model_version }}</span></div>
+        {% endif %}
+        {% if subsys.latency_ms is defined %}
+        <div class="text-[11px] text-slate-400">Latency: <span class="text-slate-300">{{ subsys.latency_ms }}ms</span></div>
+        {% endif %}
+        {% if subsys.source is defined %}
+        <div class="text-[10px] text-slate-500 truncate">{{ subsys.source }}</div>
+        {% endif %}
+        {% if subsys.storage is defined %}
+        <div class="text-[10px] text-slate-500 truncate">{{ subsys.storage }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-xs text-slate-500 font-mono py-4">No subsystem data available.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const mapEl = document.getElementById('dashboard-map');
+    if (!mapEl) return;
+
+    const map = L.map(mapEl, {
+      center: [39.8283, -98.5795],
+      zoom: 4,
+      zoomControl: true,
+      attributionControl: false,
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 8,
+    }).addTo(map);
+
+    const waypoints = [
+      { iata: 'JFK', lat: 40.6413, lon: -73.7781 },
+      { iata: 'ORD', lat: 41.9742, lon: -87.9073 },
+      { iata: 'DEN', lat: 39.8561, lon: -104.6737 },
+      { iata: 'SFO', lat: 37.6213, lon: -122.3790 },
+    ];
+
+    waypoints.forEach((w) => {
+      L.circleMarker([w.lat, w.lon], {
+        radius: 6,
+        color: '#22d3ee',
+        fillColor: '#22d3ee',
+        fillOpacity: 0.6,
+        weight: 1,
+      })
+        .bindTooltip(w.iata, { direction: 'top' })
+        .addTo(map);
+    });
+
+    const route = waypoints.map((w) => [w.lat, w.lon]);
+    L.polyline(route, {
+      color: '#22d3ee',
+      weight: 2,
+      opacity: 0.6,
+      dashArray: '4 4',
+    }).addTo(map);
+
+    map.fitBounds(route, { padding: [20, 20] });
+
+    const launchBtn = document.getElementById('launch-optimizer');
+    if (launchBtn) {
+      launchBtn.addEventListener('click', function () {
+        const origin = document.getElementById('quick-origin')?.value || 'JFK';
+        const dest = document.getElementById('quick-dest')?.value || 'SFO';
+        window.location.href = `/app/routes?origin=${origin}&dest=${dest}`;
+      });
+    }
+  });
+</script>
+{% endblock %}

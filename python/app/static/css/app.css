@@ -1,0 +1,587 @@
+/* AeroRoute AI — custom styles layered on top of Tailwind Play CDN */
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #05070c;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ------------------------------------------------------------------ */
+/* Leaflet Dark Customizations                                         */
+/* ------------------------------------------------------------------ */
+.leaflet-container {
+  background-color: #070a0f !important;
+  font-family: inherit;
+}
+
+.leaflet-bar a {
+  background-color: #0c121d !important;
+  border-color: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #1e293b !important;
+  color: #38bdf8 !important;
+}
+
+.aviation-map-tooltip {
+  background-color: #070a0f !important;
+  border: 1px solid #1e293b !important;
+  color: #e2e8f0 !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+  padding: 6px 8px !important;
+}
+
+.aviation-map-tooltip:before {
+  border-top-color: #1e293b !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Custom Scrollbars                                                   */
+/* ------------------------------------------------------------------ */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+  background-clip: content-box;
+}
+
+/* ------------------------------------------------------------------ */
+/* Public site helpers                                                 */
+/* ------------------------------------------------------------------ */
+.font-display {
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.text-gradient {
+  background-image: linear-gradient(120deg, #e2f6ff 0%, #67e8f9 40%, #818cf8 70%, #c084fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass {
+  background-color: rgba(10, 15, 26, 0.62);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.grid-overlay {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.06) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+
+.aurora {
+  background:
+    radial-gradient(45rem 30rem at 12% -8%, rgba(56, 189, 248, 0.22), transparent 60%),
+    radial-gradient(40rem 26rem at 88% -4%, rgba(129, 140, 248, 0.20), transparent 62%),
+    radial-gradient(34rem 22rem at 52% 8%, rgba(192, 132, 252, 0.14), transparent 60%);
+  animation: aurora-drift 18s ease-in-out infinite alternate;
+}
+
+/* ------------------------------------------------------------------ */
+/* Keyframe animations                                                 */
+/* ------------------------------------------------------------------ */
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(0, -2.5%, 0) scale(1.06);
+  }
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+.animate-float {
+  animation: float-y 6s ease-in-out infinite;
+}
+
+@keyframes float-y-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-18px);
+  }
+}
+.animate-float-slow {
+  animation: float-y-slow 9s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(56, 189, 248, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+  }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.route-draw {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: draw-line 3.4s ease-in-out forwards;
+}
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -120;
+  }
+}
+.route-flow {
+  stroke-dasharray: 6 10;
+  animation: dash-flow 5s linear infinite;
+}
+
+@keyframes marquee-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee-x 32s linear infinite;
+}
+
+@keyframes shimmer-x {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+.shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(148, 197, 255, 0.14) 40%,
+    rgba(148, 197, 255, 0.14) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-x 6s linear infinite;
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 22s linear infinite;
+}
+
+/* Reveal-on-scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .aurora,
+  .animate-float,
+  .animate-float-slow,
+  .animate-pulse-ring,
+  .route-draw,
+  .route-flow,
+  .animate-marquee,
+  .shimmer,
+  .animate-spin-slow,
+  .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ================================================================== */
+/* PREMIUM LAYER — 2026 "deep glass" 3D system                         */
+/* ================================================================== */
+
+/* Typography ------------------------------------------------------- */
+body {
+  font-family: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.font-display,
+h1,
+h2,
+h3 {
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+.font-mono,
+code,
+kbd,
+pre,
+[class*="font-mono"] {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Ambient animated stage ------------------------------------------- */
+.bg-stage {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bg-stage .orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  will-change: transform;
+}
+.bg-stage .orb.o1 {
+  width: 42rem;
+  height: 42rem;
+  top: -14rem;
+  left: -10rem;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.35), transparent 65%);
+  animation: orb-float 26s ease-in-out infinite;
+}
+.bg-stage .orb.o2 {
+  width: 36rem;
+  height: 36rem;
+  top: -10rem;
+  right: -12rem;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.32), transparent 65%);
+  animation: orb-float 32s ease-in-out infinite reverse;
+}
+.bg-stage .orb.o3 {
+  width: 40rem;
+  height: 40rem;
+  bottom: -18rem;
+  left: 35%;
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.24), transparent 65%);
+  animation: orb-float 38s ease-in-out infinite;
+}
+.bg-stage .grid-plane {
+  position: absolute;
+  inset: -20% -10% -40% -10%;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.08) 1px, transparent 1px);
+  background-size: 54px 54px;
+  transform: perspective(600px) rotateX(62deg);
+  transform-origin: center top;
+  mask-image: linear-gradient(to bottom, #000, transparent 70%);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 70%);
+  animation: grid-scroll 24s linear infinite;
+}
+
+/* Cursor light + scroll progress ----------------------------------- */
+#cursor-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 460px;
+  height: 460px;
+  margin: -230px 0 0 -230px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.12), rgba(129, 140, 248, 0.06) 45%, transparent 62%);
+}
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  z-index: 100;
+  background: linear-gradient(90deg, #22d3ee, #818cf8, #c084fc);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.7);
+}
+
+/* 3D tilt cards + glare -------------------------------------------- */
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+  will-change: transform;
+}
+.tilt-card.is-tilting {
+  transition: box-shadow 0.3s ease;
+}
+.tilt-card:hover {
+  box-shadow: 0 32px 70px -30px rgba(6, 182, 212, 0.45), 0 0 0 1px rgba(56, 189, 248, 0.18);
+}
+.tilt-card .glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    circle at var(--gx, 50%) var(--gy, 50%),
+    rgba(255, 255, 255, 0.22),
+    transparent 55%
+  );
+  mix-blend-mode: overlay;
+}
+.tilt-card:hover .glare {
+  opacity: 1;
+}
+
+/* Deep-glass panel with animated border glint ---------------------- */
+.panel-3d {
+  position: relative;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012));
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    0 24px 50px -28px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.panel-3d::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, transparent 32%, rgba(56, 189, 248, 0.6) 50%, transparent 68%);
+  background-size: 220% 100%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: border-glint 6s linear infinite;
+  pointer-events: none;
+}
+.panel-3d:hover::before {
+  opacity: 1;
+}
+
+/* Neon pulse + hover lift ------------------------------------------ */
+.neon-pulse {
+  animation: neon-pulse 4s ease-in-out infinite;
+}
+.hover-3d {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+}
+.hover-3d:hover {
+  transform: translateY(-6px) scale(1.015);
+  box-shadow: 0 30px 60px -30px rgba(56, 189, 248, 0.5);
+}
+
+/* Button shine sweep ----------------------------------------------- */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: -130%;
+  width: 55%;
+  height: 140%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.65s ease;
+  pointer-events: none;
+}
+.btn-shine:hover::after {
+  left: 140%;
+}
+
+/* Page enter ------------------------------------------------------- */
+.page-enter {
+  animation: page-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Premium map ------------------------------------------------------ */
+.leaflet-container {
+  background: #04060b !important;
+  position: relative;
+}
+.leaflet-tile-pane {
+  filter: brightness(0.92) contrast(1.02) saturate(1.15);
+}
+.leaflet-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 42%, rgba(2, 6, 12, 0.75) 100%);
+}
+.leaflet-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 301;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: screen;
+  background: repeating-linear-gradient(0deg, rgba(56, 189, 248, 0.06) 0 1px, transparent 1px 4px);
+}
+.map-radar {
+  position: absolute;
+  inset: 0;
+  z-index: 302;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: conic-gradient(from 0deg, rgba(56, 189, 248, 0.16), transparent 24%, transparent 100%);
+  animation: radar-spin 6s linear infinite;
+}
+.leaflet-overlay-pane svg path.hub-pulse {
+  animation: hub-pulse 2.4s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.leaflet-overlay-pane svg path.route-animated {
+  stroke-dasharray: 9 12;
+  animation: dash-flow 1.4s linear infinite;
+}
+.leaflet-overlay-pane svg path.corridor-line {
+  opacity: 0.38;
+}
+.leaflet-marker-icon {
+  filter: drop-shadow(0 0 7px rgba(56, 189, 248, 0.6));
+}
+.leaflet-control-zoom a {
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px -6px rgba(0, 0, 0, 0.7);
+}
+
+/* Keyframes -------------------------------------------------------- */
+@keyframes orb-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(6%, -5%, 0) scale(1.08);
+  }
+  66% {
+    transform: translate3d(-5%, 4%, 0) scale(0.96);
+  }
+}
+@keyframes grid-scroll {
+  to {
+    background-position: 0 54px, 54px 0;
+  }
+}
+@keyframes border-glint {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -60% 0;
+  }
+}
+@keyframes neon-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.25), 0 0 24px rgba(34, 211, 238, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(34, 211, 238, 0), 0 0 48px rgba(34, 211, 238, 0.35);
+  }
+}
+@keyframes hub-pulse {
+  0% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}
+@keyframes radar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-stage .orb,
+  .bg-stage .grid-plane,
+  .neon-pulse,
+  .page-enter,
+  .panel-3d::before,
+  .map-radar,
+  .leaflet-overlay-pane svg path.hub-pulse,
+  .leaflet-overlay-pane svg path.route-animated {
+    animation: none !important;
+  }
+  .tilt-card,
+  .hover-3d {
+    transform: none !important;
+  }
+}

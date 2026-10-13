@@ -1,0 +1,129 @@
+{% extends 'base_public.html' %}
+
+{% block title %}Features · {{ app_name }}{% endblock %}
+
+{% block content %}
+{% set modules = [
+  (
+    'navigation', 'Optimization', 'Multi-Objective Route Optimizer',
+    'Combine five normalized cost components into one transparent score. Adjust weight presets or fine-tune each slider, then compare the recommended corridor against evaluated alternatives.',
+    ['Presets: Balanced, Min Fuel, Avoid Weather, Low Congestion', 'Nine route metrics incl. fuel proxy and delay risk', 'Explainable decision factors per recommendation'],
+    '/app/routes', 'cyan'
+  ),
+  (
+    'git-branch', 'Algorithms', 'Dijkstra & A* Search Engines',
+    'Custom pathfinding over a weighted directed graph, with an admissible Haversine great-circle heuristic and a side-by-side benchmark of explored nodes and execution latency.',
+    ['Exhaustive optimal-cost Dijkstra baseline', 'Heuristic-guided A* with identical optimal paths', 'Node-exploration efficiency gain reporting'],
+    '/app/routes', 'sky'
+  ),
+  (
+    'plane', 'Flight Ops', 'Flight Operations Intelligence',
+    'Search and filter bundled historical flight records, then open a detail drawer that decomposes delay into weather, NAS, carrier and late-aircraft causes with stored weather context.',
+    ['Carrier, origin, destination and status filters', 'Delay attribution decomposition', 'Origin and destination METAR context'],
+    '/app/flights', 'indigo'
+  ),
+  (
+    'cloud-rain', 'Environment', 'Aviation Weather Intelligence',
+    'Stored METAR observations transformed into derived risk scores, broken into surface winds, visibility, cloud ceiling and weather phenomena penalties.',
+    ['Flight-category classification (VFR/MVFR/IFR/LIFR)', 'Four-component risk breakdown', 'All-stations comparison table'],
+    '/app/weather', 'amber'
+  ),
+  (
+    'gauge', 'Throughput', 'Airport Congestion & Throughput',
+    'A derived congestion index built from scheduled movements, runway acceptance capacity, queue imbalance and taxi-out proxies — with Ground Delay Program flags.',
+    ['Runway capacity load visualizer', 'Ranked congestion leaderboard', 'Transparent methodology disclosure'],
+    '/app/congestion', 'violet'
+  ),
+  (
+    'network', 'Topology', 'National Airspace Network Map',
+    'An interactive Leaflet graph of airport nodes and directed corridors, with clickable hub telemetry, regional filters and quick launch into route planning.',
+    ['21 nodes · 60 directed corridors', 'Click-to-inspect hub detail panel', 'East / Midwest / South / West filters'],
+    '/app/network', 'emerald'
+  ),
+  (
+    'cpu', 'Model', 'Model Metrics & Scoring Simulator',
+    'Review bundled evaluation artifacts — accuracy, macro F1, confusion matrix, feature importance — then run an interactive delay-risk scoring simulator with class probabilities.',
+    ['Reported metrics and baseline comparison', 'Live deterministic scoring simulator', 'Feature attribution by impact direction'],
+    '/app/model', 'cyan'
+  ),
+  (
+    'bar-chart-3', 'Reporting', 'Operations Analytics & Trends',
+    'Empirical distributions of delay severity and carrier punctuality rendered with Recharts, plus a reliability matrix and one-click CSV export.',
+    ['Delay-severity distribution chart', 'Carrier on-time benchmarks', 'CSV export of carrier analytics'],
+    '/app/analytics', 'sky'
+  )
+] %}
+
+{% set accent_map = {
+  'cyan': 'text-cyan-300 bg-cyan-500/10 border-cyan-400/20',
+  'sky': 'text-sky-300 bg-sky-500/10 border-sky-400/20',
+  'indigo': 'text-indigo-300 bg-indigo-500/10 border-indigo-400/20',
+  'amber': 'text-amber-300 bg-amber-500/10 border-amber-400/20',
+  'violet': 'text-violet-300 bg-violet-500/10 border-violet-400/20',
+  'emerald': 'text-emerald-300 bg-emerald-500/10 border-emerald-400/20'
+} %}
+
+<div>
+  <section class="relative border-b border-white/5">
+    <div class="absolute inset-0 aurora opacity-70"></div>
+    <div class="absolute inset-0 grid-overlay"></div>
+    <div class="relative mx-auto max-w-7xl px-5 sm:px-8 py-20 lg:py-24 text-center">
+      <div class="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/5 px-3.5 py-1.5 text-xs font-medium text-cyan-300">
+        <i data-lucide="layers" class="w-3.5 h-3.5"></i> Feature Tour
+      </div>
+      <h1 class="mt-6 text-4xl sm:text-5xl font-bold tracking-tight">
+        One console, <span class="text-gradient">eight operational modules</span>
+      </h1>
+      <p class="mt-5 text-slate-400 max-w-2xl mx-auto leading-relaxed">
+        Each module shares the same bundled data layer and REST API, so insights connect across
+        routing, weather, congestion, model scoring and analytics.
+      </p>
+      <div class="mt-8 flex justify-center">
+        <a
+          href="/app/dashboard"
+          class="inline-flex items-center gap-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 px-6 py-3 text-sm font-semibold text-slate-950 transition-all hover:scale-[1.02] shadow-lg shadow-cyan-500/25"
+        >
+          Launch Console <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-7xl px-5 sm:px-8 py-16 lg:py-24 space-y-6">
+    {% for icon, tag, title, desc, points, to, accent in modules %}
+    <div class="reveal" data-delay="20">
+      <div class="grid md:grid-cols-12 gap-8 rounded-3xl border border-white/8 bg-white/[0.02] p-7 sm:p-9 hover:border-cyan-400/20 transition-colors">
+        <div class="md:col-span-5">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl border flex items-center justify-center {{ accent_map[accent] }}">
+              <i data-lucide="{{ icon }}" class="w-6 h-6"></i>
+            </div>
+            <span class="text-xs font-mono uppercase tracking-widest text-slate-500">
+              {{ tag }}
+            </span>
+          </div>
+          <h2 class="mt-5 text-2xl font-bold tracking-tight text-slate-100">{{ title }}</h2>
+          <p class="mt-3 text-slate-400 leading-relaxed">{{ desc }}</p>
+        </div>
+        <div class="md:col-span-7 md:border-l md:border-white/5 md:pl-8 flex flex-col justify-between">
+          <ul class="space-y-3">
+            {% for p in points %}
+            <li class="flex items-start gap-3 text-sm text-slate-300">
+              <i data-lucide="check-circle-2" class="w-[18px] h-[18px] text-cyan-400 shrink-0 mt-0.5"></i>
+              {{ p }}
+            </li>
+            {% endfor %}
+          </ul>
+          <a
+            href="{{ to }}"
+            class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            Open module <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

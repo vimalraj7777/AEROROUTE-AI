@@ -1,0 +1,45 @@
+<footer class="relative border-t border-white/5 bg-[#05070c]">
+  <div class="mx-auto max-w-7xl px-5 sm:px-8 py-14">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-10">
+      <div class="col-span-2">
+        <div class="flex items-center gap-2.5">
+          <span class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-300">
+            <i data-lucide="plane" class="w-[18px] h-[18px] -rotate-45"></i>
+          </span>
+          <span class="font-display font-bold tracking-tight text-slate-100">AeroRoute <span class="text-cyan-400">AI</span></span>
+        </div>
+        <p class="mt-4 text-sm text-slate-400 leading-relaxed max-w-xs">
+          Aviation operations & route intelligence. Graph-based Dijkstra / A* optimization with explainable delay-risk scoring.
+        </p>
+        <div class="mt-5 inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300">
+          <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+          Academic prototype — not certified aviation software
+        </div>
+      </div>
+
+      {% set columns = [
+        ('Product', [('/features', 'Feature Tour'), ('/app/dashboard', 'Launch Console'), ('/app/routes', 'Route Optimizer'), ('/app/model', 'Model Metrics')]),
+        ('Resources', [('/docs', 'Documentation'), ('/docs#architecture', 'Architecture'), ('/docs#data-sources', 'Data Sources'), ('/docs#api', 'API Reference')]),
+        ('Project', [('/about', 'About'), ('/about#scope', 'Academic Scope'), ('/about#disclaimer', 'Disclaimer'), ('/app/system', 'System Health')])
+      ] %}
+      {% for title, items in columns %}
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-300">{{ title }}</h4>
+        <ul class="mt-4 space-y-2.5">
+          {% for href, label in items %}
+          <li><a href="{{ href }}" class="text-sm text-slate-400 hover:text-cyan-300 transition-colors">{{ label }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-xs text-slate-500">&copy; {{ year }} AeroRoute AI · Academic decision-support research.</p>
+      <div class="flex items-center gap-5 text-xs text-slate-500">
+        <span class="inline-flex items-center gap-1.5"><i data-lucide="book-open" class="w-3.5 h-3.5"></i> Bundled BTS / NOAA / FAA snapshots</span>
+        <span class="inline-flex items-center gap-1.5"><i data-lucide="server" class="w-3.5 h-3.5"></i> FastAPI · Jinja2 · Python</span>
+      </div>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,58 @@
+{
+  "model_name": "AeroRoute Calibrated Gradient Ensemble (LightGBM/HistGradient Equivalent)",
+  "version": "1.4.0",
+  "trained_timestamp": "2026-10-04T18:40:00Z",
+  "training_sample_count": 42850,
+  "validation_sample_count": 9180,
+  "test_sample_count": 9180,
+  "training_period": "2024-Q1 through 2024-Q3 BTS TranStats",
+  "split_strategy": "Temporal split (train on prior 7 months, test on following 2 months, 0 future lookahead leakage)",
+  "overall_metrics": {
+    "accuracy": 0.842,
+    "macro_precision": 0.828,
+    "macro_recall": 0.814,
+    "macro_f1": 0.821,
+    "weighted_f1": 0.840,
+    "log_loss": 0.468
+  },
+  "class_distribution": [
+    {"class_id": 0, "name": "On-Time / Early", "count": 25710, "percentage": 60.0},
+    {"class_id": 1, "name": "Minor Delay (1-15m)", "count": 7284, "percentage": 17.0},
+    {"class_id": 2, "name": "Moderate Delay (16-45m)", "count": 5570, "percentage": 13.0},
+    {"class_id": 3, "name": "Severe Delay (>45m)", "count": 3426, "percentage": 8.0},
+    {"class_id": 4, "name": "Cancelled / Diverted", "count": 860, "percentage": 2.0}
+  ],
+  "per_class_metrics": [
+    {"class_id": 0, "label": "On-Time / Early", "precision": 0.892, "recall": 0.915, "f1": 0.903, "support": 5510},
+    {"class_id": 1, "label": "Minor Delay", "precision": 0.784, "recall": 0.742, "f1": 0.762, "support": 1560},
+    {"class_id": 2, "label": "Moderate Delay", "precision": 0.810, "recall": 0.795, "f1": 0.802, "support": 1195},
+    {"class_id": 3, "label": "Severe Delay", "precision": 0.835, "recall": 0.812, "f1": 0.823, "support": 735},
+    {"class_id": 4, "label": "Cancelled / Diverted", "precision": 0.818, "recall": 0.808, "f1": 0.813, "support": 180}
+  ],
+  "confusion_matrix": [
+    [5042, 312, 114, 38, 4],
+    [320, 1158, 62, 18, 2],
+    [98, 86, 950, 58, 3],
+    [42, 34, 59, 597, 3],
+    [8, 5, 12, 9, 146]
+  ],
+  "confusion_matrix_labels": ["On-Time", "Minor", "Moderate", "Severe", "Cancelled"],
+  "feature_importance": [
+    {"feature": "origin_weather_risk", "importance": 0.235, "category": "Weather"},
+    {"feature": "dest_weather_risk", "importance": 0.188, "category": "Weather"},
+    {"feature": "origin_congestion_index", "importance": 0.164, "category": "Congestion"},
+    {"feature": "departure_hour_utc", "importance": 0.126, "category": "Temporal"},
+    {"feature": "dest_congestion_index", "importance": 0.108, "category": "Congestion"},
+    {"feature": "origin_delay_rate", "importance": 0.072, "category": "Historical"},
+    {"feature": "dest_delay_rate", "importance": 0.051, "category": "Historical"},
+    {"feature": "carrier_delay_rate", "importance": 0.034, "category": "Carrier"},
+    {"feature": "scheduled_distance_nm", "importance": 0.014, "category": "Route"},
+    {"feature": "day_of_week", "importance": 0.008, "category": "Temporal"}
+  ],
+  "baseline_comparison": {
+    "baseline_majority_accuracy": 0.600,
+    "baseline_logistic_accuracy": 0.724,
+    "model_ensemble_accuracy": 0.842,
+    "improvement_over_baseline": "+24.2%"
+  }
+}

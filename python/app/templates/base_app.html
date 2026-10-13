@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ page_title }} · {{ app_name }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/app.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-[#05070c] text-slate-100 relative" data-page="{{ page }}">
+  <div class="bg-stage" aria-hidden="true">
+    <div class="grid-plane"></div>
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="orb o3"></div>
+  </div>
+  <div id="scroll-progress" aria-hidden="true"></div>
+  <div id="cursor-glow" aria-hidden="true"></div>
+  {% include 'partials/app_nav.html' %}
+  <div class="flex flex-1 overflow-hidden">
+    {% include 'partials/app_sidebar.html' %}
+    <main class="flex-1 min-w-0 overflow-y-auto">
+      <div class="p-5 sm:p-8 lg:p-10 space-y-7 max-w-[1500px] mx-auto page-enter">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="{{ request.url_for('static', path='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,220 @@
+{
+  "model_name": "XGBoost Gradient-Boosted Trees",
+  "active_model": "xgboost",
+  "version": "2.0.0",
+  "trained_timestamp": "2026-10-13T15:25:53.512304Z",
+  "training_sample_count": 120445,
+  "validation_sample_count": 30112,
+  "test_sample_count": 30112,
+  "feature_count": 16,
+  "training_period": "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2024_1.csv",
+  "split_strategy": "Stratified random split (80/20)",
+  "overall_metrics": {
+    "accuracy": 0.5607,
+    "macro_precision": 0.3629,
+    "macro_recall": 0.3614,
+    "macro_f1": 0.3457,
+    "weighted_f1": 0.5175,
+    "log_loss": 1.1634
+  },
+  "class_distribution": [
+    {
+      "class_id": 0,
+      "name": "On-Time",
+      "count": 86169,
+      "percentage": 57.2
+    },
+    {
+      "class_id": 1,
+      "name": "Minor",
+      "count": 24216,
+      "percentage": 16.1
+    },
+    {
+      "class_id": 2,
+      "name": "Moderate",
+      "count": 17864,
+      "percentage": 11.9
+    },
+    {
+      "class_id": 3,
+      "name": "Severe",
+      "count": 16094,
+      "percentage": 10.7
+    },
+    {
+      "class_id": 4,
+      "name": "Cancelled",
+      "count": 6214,
+      "percentage": 4.1
+    }
+  ],
+  "per_class_metrics": [
+    {
+      "class_id": 0,
+      "label": "On-Time / Early (<= 0 min)",
+      "precision": 0.666,
+      "recall": 0.836,
+      "f1": 0.741,
+      "support": 17234
+    },
+    {
+      "class_id": 1,
+      "label": "Minor Delay (1-15 min)",
+      "precision": 0.256,
+      "recall": 0.101,
+      "f1": 0.145,
+      "support": 4843
+    },
+    {
+      "class_id": 2,
+      "label": "Moderate Delay (16-45 min)",
+      "precision": 0.264,
+      "recall": 0.145,
+      "f1": 0.187,
+      "support": 3573
+    },
+    {
+      "class_id": 3,
+      "label": "Severe Delay (> 45 min)",
+      "precision": 0.354,
+      "recall": 0.287,
+      "f1": 0.317,
+      "support": 3219
+    },
+    {
+      "class_id": 4,
+      "label": "Cancelled / Diverted",
+      "precision": 0.276,
+      "recall": 0.438,
+      "f1": 0.338,
+      "support": 1243
+    }
+  ],
+  "confusion_matrix": [
+    [
+      14406,
+      757,
+      652,
+      691,
+      728
+    ],
+    [
+      3307,
+      489,
+      426,
+      370,
+      251
+    ],
+    [
+      1986,
+      403,
+      519,
+      450,
+      215
+    ],
+    [
+      1504,
+      233,
+      321,
+      925,
+      236
+    ],
+    [
+      441,
+      31,
+      49,
+      178,
+      544
+    ]
+  ],
+  "confusion_matrix_labels": [
+    "On-Time",
+    "Minor",
+    "Moderate",
+    "Severe",
+    "Cancelled"
+  ],
+  "feature_importance": [
+    {
+      "feature": "carrier_weather_rate",
+      "importance": 0.1421
+    },
+    {
+      "feature": "carrier_late_aircraft_rate",
+      "importance": 0.1197
+    },
+    {
+      "feature": "carrier_delay_rate",
+      "importance": 0.0839
+    },
+    {
+      "feature": "carrier_nas_rate",
+      "importance": 0.0699
+    },
+    {
+      "feature": "day_of_week",
+      "importance": 0.0581
+    },
+    {
+      "feature": "origin_ifr_rate",
+      "importance": 0.0535
+    },
+    {
+      "feature": "route_delay_rate",
+      "importance": 0.0508
+    },
+    {
+      "feature": "departure_hour_utc",
+      "importance": 0.0497
+    },
+    {
+      "feature": "origin_weather_risk",
+      "importance": 0.0493
+    },
+    {
+      "feature": "dest_ifr_rate",
+      "importance": 0.0489
+    },
+    {
+      "feature": "origin_delay_rate",
+      "importance": 0.0487
+    },
+    {
+      "feature": "dest_weather_risk",
+      "importance": 0.0465
+    },
+    {
+      "feature": "origin_congestion_index",
+      "importance": 0.0463
+    },
+    {
+      "feature": "dest_delay_rate",
+      "importance": 0.0448
+    },
+    {
+      "feature": "dest_congestion_index",
+      "importance": 0.0441
+    },
+    {
+      "feature": "scheduled_distance_nm",
+      "importance": 0.0438
+    }
+  ],
+  "model_comparison": {
+    "xgboost": {
+      "accuracy": 0.5607,
+      "macro_f1": 0.3457,
+      "log_loss": 1.1634
+    },
+    "random_forest": {
+      "accuracy": 0.5695,
+      "macro_f1": 0.2794,
+      "log_loss": 1.2158
+    },
+    "selected": "xgboost"
+  },
+  "baseline_comparison": {
+    "baseline_majority_accuracy": 0.572
+  }
+}

@@ -1,0 +1,40 @@
+<header data-public-nav class="fixed top-0 inset-x-0 z-50 bg-transparent transition-all duration-300">
+  <nav class="mx-auto max-w-7xl px-5 sm:px-8 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2.5 group">
+      <span class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-300 transition-transform group-hover:scale-105">
+        <i data-lucide="plane" class="w-[18px] h-[18px] -rotate-45"></i>
+      </span>
+      <span class="font-display font-bold tracking-tight text-slate-100">AeroRoute <span class="text-cyan-400">AI</span></span>
+    </a>
+
+    <div class="hidden md:flex items-center gap-1">
+      {% set links = [('home', '/', 'Home'), ('features', '/features', 'Features'), ('docs', '/docs', 'Docs'), ('about', '/about', 'About')] %}
+      {% for key, href, label in links %}
+      <a href="{{ href }}" class="px-3.5 py-2 text-sm rounded-lg transition-colors {% if active == key %}text-cyan-300{% else %}text-slate-400 hover:text-slate-100{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a href="/app/dashboard" class="hidden sm:inline-flex items-center gap-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition-colors shadow-lg shadow-cyan-500/20">
+        Launch Console
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
+      <button data-public-menu-toggle class="md:hidden p-2 rounded-lg text-slate-300 hover:bg-white/5" aria-label="Toggle menu">
+        <i data-lucide="menu" data-public-icon-menu class="w-5 h-5"></i>
+        <i data-lucide="x" data-public-icon-x class="w-5 h-5 hidden"></i>
+      </button>
+    </div>
+  </nav>
+
+  <div data-public-menu class="hidden md:hidden glass border-t border-white/5 overflow-hidden">
+    <div class="px-5 py-4 space-y-1">
+      {% for key, href, label in links %}
+      <a href="{{ href }}" class="block px-3 py-2.5 rounded-lg text-sm {% if active == key %}bg-cyan-500/10 text-cyan-300{% else %}text-slate-300 hover:bg-white/5{% endif %}">{{ label }}</a>
+      {% endfor %}
+      <a href="/app/dashboard" class="flex items-center justify-center gap-2 mt-2 rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950">
+        Launch Console
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
+    </div>
+  </div>
+</header>

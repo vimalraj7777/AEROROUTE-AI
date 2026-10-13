@@ -1,0 +1,294 @@
+{% extends 'base_app.html' %}
+{% block content %}
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+  <div>
+    <div class="flex items-center gap-2">
+      <h1 class="text-xl font-bold font-mono tracking-tight text-slate-100">
+        AVIATION WEATHER INTELLIGENCE
+      </h1>
+      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-500/30">
+        BUNDLED METAR OBSERVATIONS
+      </span>
+    </div>
+    <p class="text-xs text-slate-400 font-mono mt-1">
+      Stored METAR observations with derived risk scores for route comparison and delay-risk demonstrations. This is not a live feed.
+    </p>
+  </div>
+
+  <form method="get" class="flex items-center gap-2 font-mono text-xs">
+    <span class="text-slate-400">SELECT STATION:</span>
+    <input
+      type="text"
+      name="station"
+      value="{% if selected %}{{ selected.station }}{% elif request.query_params.station %}{{ request.query_params.station }}{% endif %}"
+      class="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
+      placeholder="e.g. KORD"
+    />
+    <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold">
+      <i data-lucide="search" class="w-[18px] h-[18px]"></i>
+      SEARCH
+    </button>
+  </form>
+</div>
+
+{% if selected %}
+<div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-800">
+    <div>
+      <div class="flex items-center gap-3">
+        <h2 class="text-2xl font-bold font-mono text-slate-100">
+          {{ selected.station }}
+        </h2>
+        <span
+          class="text-xs px-2 py-0.5 rounded font-mono font-bold
+          {% if selected.flight_category == 'VFR' %}
+            bg-emerald-950/60 text-emerald-400 border border-emerald-800/40
+          {% elif selected.flight_category == 'MVFR' %}
+            bg-sky-950/60 text-sky-400 border border-sky-800/40
+          {% else %}
+            bg-rose-950/60 text-rose-400 border border-rose-800/40
+          {% endif %}"
+        >
+          FLIGHT CAT: {{ selected.flight_category }}
+        </span>
+      </div>
+      <div class="text-xs font-mono text-slate-400 mt-1">
+        Observation Timestamp: {{ selected.timestamp_utc }}
+      </div>
+    </div>
+
+    <div class="text-right font-mono">
+      <span class="text-xs text-slate-400">COMPOSITE RISK INDEX</span>
+      <div class="text-2xl font-bold text-amber-400">
+        {{ selected.composite_risk_score }}
+        <span class="text-xs font-normal text-slate-500">/ 100</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-slate-950/80 border border-slate-800 p-3 rounded font-mono text-xs">
+    <span class="text-slate-500 block mb-1">RAW METAR TELEMETRY:</span>
+    <code class="text-cyan-300 font-semibold tracking-wide">
+      {{ selected.raw_metar }}
+    </code>
+  </div>
+</div>
+
+{% set wind_risk = ((selected.wind_speed_kt * 2.5) + (selected.wind_gust_kt * 1.5)) %}
+{% if wind_risk > 100 %}{% set wind_risk = 100 %}{% endif %}
+{% if selected.visibility_sm < 3 %}
+  {% set vis_risk = 80 %}
+{% elif selected.visibility_sm < 5 %}
+  {% set vis_risk = 45 %}
+{% else %}
+  {% set vis_risk = 10 %}
+{% endif %}
+{% if selected.ceiling_ft < 1000 %}
+  {% set ceiling_risk = 90 %}
+{% elif selected.ceiling_ft < 3000 %}
+  {% set ceiling_risk = 50 %}
+{% else %}
+  {% set ceiling_risk = 15 %}
+{% endif %}
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 font-mono space-y-2">
+    <div class="flex justify-between items-center text-slate-400 text-xs">
+      <span>SURFACE WINDS</span>
+      <i data-lucide="wind" class="w-[18px] h-[18px] text-cyan-400"></i>
+    </div>
+    <div class="text-xl font-bold text-slate-100">
+      {{ selected.wind_dir }}° / {{ selected.wind_speed_kt }} KT
+    </div>
+    <div class="text-xs text-slate-400">
+      Gusts: {% if selected.wind_gust_kt %}{{ selected.wind_gust_kt }} KT{% else %}None{% endif %}
+    </div>
+    <div class="text-[11px] text-cyan-400 pt-1 border-t border-slate-800">
+      Wind Risk Factor: {{ wind_risk | int }} / 100
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 font-mono space-y-2">
+    <div class="flex justify-between items-center text-slate-400 text-xs">
+      <span>VISIBILITY</span>
+      <i data-lucide="eye" class="w-[18px] h-[18px] text-sky-400"></i>
+    </div>
+    <div class="text-xl font-bold text-slate-100">
+      {{ selected.visibility_sm }} STATUTE MI
+    </div>
+    <div class="text-xs text-slate-400">
+      Minima: {% if selected.visibility_sm >= 5 %}VFR Clear{% else %}Instrument Approach{% endif %}
+    </div>
+    <div class="text-[11px] text-sky-400 pt-1 border-t border-slate-800">
+      Visibility Risk Factor: {{ vis_risk }} / 100
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 font-mono space-y-2">
+    <div class="flex justify-between items-center text-slate-400 text-xs">
+      <span>CLOUD CEILING</span>
+      <i data-lucide="cloud-rain" class="w-[18px] h-[18px] text-amber-400"></i>
+    </div>
+    <div class="text-xl font-bold text-slate-100">
+      {{ selected.ceiling_ft }} FT AGL
+    </div>
+    <div class="text-xs text-slate-400">
+      Altimeter: {{ selected.altimeter_inhg }} inHg
+    </div>
+    <div class="text-[11px] text-amber-400 pt-1 border-t border-slate-800">
+      Ceiling Risk Factor: {{ ceiling_risk }} / 100
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-4 font-mono space-y-2">
+    <div class="flex justify-between items-center text-slate-400 text-xs">
+      <span>WEATHER PHENOMENA</span>
+      <i data-lucide="alert-triangle" class="w-[18px] h-[18px] text-rose-400"></i>
+    </div>
+    <div class="text-xl font-bold text-slate-100 truncate">
+      {{ selected.phenomena }}
+    </div>
+    <div class="text-xs text-slate-400">
+      Temp: {{ selected.temp_c }}°C · Dew: {{ selected.dewpoint_c }}°C
+    </div>
+    <div class="text-[11px] text-rose-400 pt-1 border-t border-slate-800">
+      Penalty: {% if selected.phenomena != 'None' %}Active Weather Cell{% else %}Nominal{% endif %}
+    </div>
+  </div>
+</div>
+
+{% if selected_risk %}
+<div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+  <h3 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200">
+    FOUR-COMPONENT RISK BREAKDOWN
+  </h3>
+  <div class="space-y-2 font-mono text-xs">
+    <div>
+      <div class="flex justify-between text-slate-400 mb-1">
+        <span>WIND RISK</span>
+        <span>{{ selected_risk.breakdown.wind_risk }}%</span>
+      </div>
+      <div class="w-full h-2 bg-slate-900 rounded overflow-hidden border border-slate-800">
+        <div class="h-full bg-cyan-500" style="width: {{ selected_risk.breakdown.wind_risk }}%"></div>
+      </div>
+    </div>
+    <div>
+      <div class="flex justify-between text-slate-400 mb-1">
+        <span>VISIBILITY RISK</span>
+        <span>{{ selected_risk.breakdown.visibility_risk }}%</span>
+      </div>
+      <div class="w-full h-2 bg-slate-900 rounded overflow-hidden border border-slate-800">
+        <div class="h-full bg-sky-500" style="width: {{ selected_risk.breakdown.visibility_risk }}%"></div>
+      </div>
+    </div>
+    <div>
+      <div class="flex justify-between text-slate-400 mb-1">
+        <span>CEILING RISK</span>
+        <span>{{ selected_risk.breakdown.ceiling_risk }}%</span>
+      </div>
+      <div class="w-full h-2 bg-slate-900 rounded overflow-hidden border border-slate-800">
+        <div class="h-full bg-amber-500" style="width: {{ selected_risk.breakdown.ceiling_risk }}%"></div>
+      </div>
+    </div>
+    <div>
+      <div class="flex justify-between text-slate-400 mb-1">
+        <span>PHENOMENA PENALTY</span>
+        <span>{{ selected_risk.breakdown.phenomena_penalty }}%</span>
+      </div>
+      <div class="w-full h-2 bg-slate-900 rounded overflow-hidden border border-slate-800">
+        <div class="h-full bg-rose-500" style="width: {{ selected_risk.breakdown.phenomena_penalty }}%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+  <h3 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200">
+    ALL MONITORED NAS STATIONS
+  </h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left font-mono text-xs">
+      <thead>
+        <tr class="text-slate-500 border-b border-slate-800">
+          <th class="py-2">STATION</th>
+          <th class="py-2">CATEGORY</th>
+          <th class="py-2">WIND</th>
+          <th class="py-2">VISIBILITY</th>
+          <th class="py-2">CEILING</th>
+          <th class="py-2">PHENOMENA</th>
+          <th class="py-2">RISK SCORE</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800">
+        {% for w in observations %}
+        <tr
+          class="transition-colors {% if selected and w.station == selected.station %}bg-cyan-950/50 text-slate-100{% else %}hover:bg-slate-900/40 text-slate-300{% endif %}"
+        >
+          <td class="py-2.5 font-bold text-slate-200">
+            <a href="/app/weather?station={{ w.station }}" class="hover:underline">{{ w.station }}</a>
+          </td>
+          <td class="py-2.5">
+            <span
+              class="text-[10px] px-1.5 py-0.5 rounded
+              {% if w.flight_category == 'VFR' %}
+                bg-emerald-950/60 text-emerald-400 border border-emerald-800/40
+              {% elif w.flight_category == 'MVFR' %}
+                bg-sky-950/60 text-sky-400 border border-sky-800/40
+              {% else %}
+                bg-rose-950/60 text-rose-400 border border-rose-800/40
+              {% endif %}"
+            >
+              {{ w.flight_category }}
+            </span>
+          </td>
+          <td class="py-2.5 text-slate-300">{{ w.wind_dir }}° / {{ w.wind_speed_kt }}kt</td>
+          <td class="py-2.5 text-slate-300">{{ w.visibility_sm }} SM</td>
+          <td class="py-2.5 text-slate-300">{{ w.ceiling_ft }} ft</td>
+          <td class="py-2.5 text-slate-400">{{ w.phenomena }}</td>
+          <td class="py-2.5 text-amber-400 font-bold">{{ w.composite_risk_score }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="bg-slate-950/50 border border-slate-800 p-4 rounded text-xs font-mono text-slate-500 space-y-1">
+  <div class="flex items-center gap-1.5 text-slate-400 font-bold">
+    <i data-lucide="info" class="w-[18px] h-[18px] text-cyan-400"></i>
+    <span>METAR RISK FORMULATION DISCLOSURE</span>
+  </div>
+  <p>
+    Weather risk indices are operational decision-support heuristics synthesized from standard METAR parameters. They do not constitute official FAA Air Traffic Control ground-stop determinations or certified airline takeoff/landing minima.
+  </p>
+</div>
+
+{% if summary %}
+<div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-2 font-mono text-xs">
+  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">SUMMARY KPIS</h3>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+      <div class="text-[10px] text-slate-400">TOTAL STATIONS</div>
+      <div class="text-xl font-bold text-slate-100">{{ summary.total_stations }}</div>
+    </div>
+    <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+      <div class="text-[10px] text-slate-400">VFR / IFR</div>
+      <div class="text-xl font-bold text-slate-100">{{ summary.vfr_count }} / {{ summary.ifr_count }}</div>
+    </div>
+    <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+      <div class="text-[10px] text-slate-400">AVERAGE RISK SCORE</div>
+      <div class="text-xl font-bold text-amber-400">{{ summary.average_risk_score }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+{% endblock %}

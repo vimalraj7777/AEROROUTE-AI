@@ -1,0 +1,375 @@
+{
+  "active_model": "xgboost",
+  "trained_timestamp": "2026-10-13T15:25:53.512304Z",
+  "trained_on_files": [
+    "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2024_1.csv",
+    "metar_asos_2024_01.csv"
+  ],
+  "feature_names": [
+    "origin_delay_rate",
+    "dest_delay_rate",
+    "carrier_delay_rate",
+    "carrier_weather_rate",
+    "carrier_nas_rate",
+    "carrier_late_aircraft_rate",
+    "route_delay_rate",
+    "departure_hour_utc",
+    "day_of_week",
+    "scheduled_distance_nm",
+    "origin_weather_risk",
+    "dest_weather_risk",
+    "origin_congestion_index",
+    "dest_congestion_index",
+    "origin_ifr_rate",
+    "dest_ifr_rate"
+  ],
+  "classes": [
+    {
+      "id": 0,
+      "code": "ON_TIME",
+      "label": "On-Time / Early (<= 0 min)"
+    },
+    {
+      "id": 1,
+      "code": "MINOR_DELAY",
+      "label": "Minor Delay (1-15 min)"
+    },
+    {
+      "id": 2,
+      "code": "MODERATE_DELAY",
+      "label": "Moderate Delay (16-45 min)"
+    },
+    {
+      "id": 3,
+      "code": "SEVERE_DELAY",
+      "label": "Severe Delay (> 45 min)"
+    },
+    {
+      "id": 4,
+      "code": "CANCELLED_DIVERTED",
+      "label": "Cancelled / Diverted"
+    }
+  ],
+  "models": {
+    "xgboost": {
+      "display_name": "XGBoost Gradient-Boosted Trees",
+      "file": "xgboost_model.json",
+      "joblib": "xgboost_model.joblib",
+      "metrics": {
+        "model_name": "XGBoost Gradient-Boosted Trees",
+        "accuracy": 0.5607,
+        "balanced_accuracy": 0.3614,
+        "macro_precision": 0.3629,
+        "macro_recall": 0.3614,
+        "macro_f1": 0.3457,
+        "weighted_f1": 0.5175,
+        "log_loss": 1.1634,
+        "confusion_matrix": [
+          [
+            14406,
+            757,
+            652,
+            691,
+            728
+          ],
+          [
+            3307,
+            489,
+            426,
+            370,
+            251
+          ],
+          [
+            1986,
+            403,
+            519,
+            450,
+            215
+          ],
+          [
+            1504,
+            233,
+            321,
+            925,
+            236
+          ],
+          [
+            441,
+            31,
+            49,
+            178,
+            544
+          ]
+        ],
+        "per_class_metrics": [
+          {
+            "class_id": 0,
+            "label": "On-Time / Early (<= 0 min)",
+            "precision": 0.666,
+            "recall": 0.836,
+            "f1": 0.741,
+            "support": 17234
+          },
+          {
+            "class_id": 1,
+            "label": "Minor Delay (1-15 min)",
+            "precision": 0.256,
+            "recall": 0.101,
+            "f1": 0.145,
+            "support": 4843
+          },
+          {
+            "class_id": 2,
+            "label": "Moderate Delay (16-45 min)",
+            "precision": 0.264,
+            "recall": 0.145,
+            "f1": 0.187,
+            "support": 3573
+          },
+          {
+            "class_id": 3,
+            "label": "Severe Delay (> 45 min)",
+            "precision": 0.354,
+            "recall": 0.287,
+            "f1": 0.317,
+            "support": 3219
+          },
+          {
+            "class_id": 4,
+            "label": "Cancelled / Diverted",
+            "precision": 0.276,
+            "recall": 0.438,
+            "f1": 0.338,
+            "support": 1243
+          }
+        ]
+      },
+      "feature_importance": [
+        {
+          "feature": "carrier_weather_rate",
+          "importance": 0.1421
+        },
+        {
+          "feature": "carrier_late_aircraft_rate",
+          "importance": 0.1197
+        },
+        {
+          "feature": "carrier_delay_rate",
+          "importance": 0.0839
+        },
+        {
+          "feature": "carrier_nas_rate",
+          "importance": 0.0699
+        },
+        {
+          "feature": "day_of_week",
+          "importance": 0.0581
+        },
+        {
+          "feature": "origin_ifr_rate",
+          "importance": 0.0535
+        },
+        {
+          "feature": "route_delay_rate",
+          "importance": 0.0508
+        },
+        {
+          "feature": "departure_hour_utc",
+          "importance": 0.0497
+        },
+        {
+          "feature": "origin_weather_risk",
+          "importance": 0.0493
+        },
+        {
+          "feature": "dest_ifr_rate",
+          "importance": 0.0489
+        },
+        {
+          "feature": "origin_delay_rate",
+          "importance": 0.0487
+        },
+        {
+          "feature": "dest_weather_risk",
+          "importance": 0.0465
+        },
+        {
+          "feature": "origin_congestion_index",
+          "importance": 0.0463
+        },
+        {
+          "feature": "dest_delay_rate",
+          "importance": 0.0448
+        },
+        {
+          "feature": "dest_congestion_index",
+          "importance": 0.0441
+        },
+        {
+          "feature": "scheduled_distance_nm",
+          "importance": 0.0438
+        }
+      ]
+    },
+    "random_forest": {
+      "display_name": "Random Forest (Bagged Trees)",
+      "file": "random_forest_model.json",
+      "joblib": "random_forest_model.joblib",
+      "metrics": {
+        "model_name": "Random Forest (Bagged Trees)",
+        "accuracy": 0.5695,
+        "balanced_accuracy": 0.3035,
+        "macro_precision": 0.3573,
+        "macro_recall": 0.3035,
+        "macro_f1": 0.2794,
+        "weighted_f1": 0.4788,
+        "log_loss": 1.2158,
+        "confusion_matrix": [
+          [
+            15805,
+            112,
+            185,
+            479,
+            653
+          ],
+          [
+            4084,
+            100,
+            159,
+            256,
+            244
+          ],
+          [
+            2748,
+            89,
+            202,
+            338,
+            196
+          ],
+          [
+            2223,
+            35,
+            110,
+            636,
+            215
+          ],
+          [
+            652,
+            8,
+            19,
+            159,
+            405
+          ]
+        ],
+        "per_class_metrics": [
+          {
+            "class_id": 0,
+            "label": "On-Time / Early (<= 0 min)",
+            "precision": 0.62,
+            "recall": 0.917,
+            "f1": 0.739,
+            "support": 17234
+          },
+          {
+            "class_id": 1,
+            "label": "Minor Delay (1-15 min)",
+            "precision": 0.291,
+            "recall": 0.021,
+            "f1": 0.039,
+            "support": 4843
+          },
+          {
+            "class_id": 2,
+            "label": "Moderate Delay (16-45 min)",
+            "precision": 0.299,
+            "recall": 0.057,
+            "f1": 0.095,
+            "support": 3573
+          },
+          {
+            "class_id": 3,
+            "label": "Severe Delay (> 45 min)",
+            "precision": 0.34,
+            "recall": 0.198,
+            "f1": 0.25,
+            "support": 3219
+          },
+          {
+            "class_id": 4,
+            "label": "Cancelled / Diverted",
+            "precision": 0.236,
+            "recall": 0.326,
+            "f1": 0.274,
+            "support": 1243
+          }
+        ]
+      },
+      "feature_importance": [
+        {
+          "feature": "origin_weather_risk",
+          "importance": 0.139
+        },
+        {
+          "feature": "dest_weather_risk",
+          "importance": 0.1028
+        },
+        {
+          "feature": "route_delay_rate",
+          "importance": 0.0903
+        },
+        {
+          "feature": "departure_hour_utc",
+          "importance": 0.0854
+        },
+        {
+          "feature": "carrier_late_aircraft_rate",
+          "importance": 0.0775
+        },
+        {
+          "feature": "day_of_week",
+          "importance": 0.0698
+        },
+        {
+          "feature": "carrier_delay_rate",
+          "importance": 0.0639
+        },
+        {
+          "feature": "carrier_weather_rate",
+          "importance": 0.0631
+        },
+        {
+          "feature": "scheduled_distance_nm",
+          "importance": 0.0537
+        },
+        {
+          "feature": "carrier_nas_rate",
+          "importance": 0.0496
+        },
+        {
+          "feature": "origin_delay_rate",
+          "importance": 0.042
+        },
+        {
+          "feature": "origin_ifr_rate",
+          "importance": 0.0381
+        },
+        {
+          "feature": "dest_delay_rate",
+          "importance": 0.0377
+        },
+        {
+          "feature": "dest_ifr_rate",
+          "importance": 0.0327
+        },
+        {
+          "feature": "origin_congestion_index",
+          "importance": 0.0293
+        },
+        {
+          "feature": "dest_congestion_index",
+          "importance": 0.0252
+        }
+      ]
+    }
+  }
+}

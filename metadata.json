@@ -1,0 +1,6 @@
+{
+  "name": "AeroRoute AI - Aviation Operations & Route Intelligence",
+  "description": "Academic aviation operations-intelligence and route optimization decision-support prototype combining historical delay ML, weather & congestion proxies, and Dijkstra / A* pathfinding.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

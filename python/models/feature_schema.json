@@ -1,0 +1,102 @@
+{
+  "target": "delay_severity_class",
+  "classes": [
+    {"class_id": 0, "label": "On-Time / Early (<= 0 min)", "code": "ON_TIME"},
+    {"class_id": 1, "label": "Minor Delay (1-15 min)", "code": "MINOR_DELAY"},
+    {"class_id": 2, "label": "Moderate Delay (16-45 min)", "code": "MODERATE_DELAY"},
+    {"class_id": 3, "label": "Severe Delay (> 45 min)", "code": "SEVERE_DELAY"},
+    {"class_id": 4, "label": "Cancelled / Diverted", "code": "CANCELLED_DIVERTED"}
+  ],
+  "features": [
+    {
+      "name": "origin_delay_rate",
+      "type": "float",
+      "description": "Historical 30-day mean departure delay rate at origin hub (minutes)",
+      "min": 2.1,
+      "max": 38.4,
+      "mean": 14.8
+    },
+    {
+      "name": "dest_delay_rate",
+      "type": "float",
+      "description": "Historical 30-day mean arrival delay rate at destination hub (minutes)",
+      "min": 1.8,
+      "max": 42.1,
+      "mean": 15.2
+    },
+    {
+      "name": "carrier_delay_rate",
+      "type": "float",
+      "description": "Carrier average schedule deviation index",
+      "min": 3.0,
+      "max": 28.5,
+      "mean": 12.4
+    },
+    {
+      "name": "departure_hour_utc",
+      "type": "int",
+      "description": "Scheduled departure hour in Coordinated Universal Time (0-23)",
+      "min": 0,
+      "max": 23,
+      "mean": 14.2
+    },
+    {
+      "name": "day_of_week",
+      "type": "int",
+      "description": "Day of week (1=Monday, 7=Sunday)",
+      "min": 1,
+      "max": 7,
+      "mean": 4.1
+    },
+    {
+      "name": "scheduled_distance_nm",
+      "type": "float",
+      "description": "Nautical miles between origin and destination",
+      "min": 120.0,
+      "max": 2600.0,
+      "mean": 860.5
+    },
+    {
+      "name": "origin_weather_risk",
+      "type": "float",
+      "description": "Origin airport composite METAR severity index (0-100)",
+      "min": 0.0,
+      "max": 100.0,
+      "mean": 24.3
+    },
+    {
+      "name": "dest_weather_risk",
+      "type": "float",
+      "description": "Destination airport composite METAR severity index (0-100)",
+      "min": 0.0,
+      "max": 100.0,
+      "mean": 26.1
+    },
+    {
+      "name": "origin_congestion_index",
+      "type": "float",
+      "description": "Origin derived hourly operations to capacity load factor (0-100)",
+      "min": 10.0,
+      "max": 96.0,
+      "mean": 54.7
+    },
+    {
+      "name": "dest_congestion_index",
+      "type": "float",
+      "description": "Destination derived hourly operations to capacity load factor (0-100)",
+      "min": 10.0,
+      "max": 96.0,
+      "mean": 55.2
+    }
+  ],
+  "categorical_mappings": {
+    "carrier": {
+      "DL": 0.14,
+      "AA": 0.21,
+      "UA": 0.23,
+      "WN": 0.19,
+      "AS": 0.13,
+      "B6": 0.27
+    }
+  }
+}

@@ -1,0 +1,213 @@
+{% extends 'base_app.html' %}
+{% block content %}
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+  <div>
+    <div class="flex items-center gap-2">
+      <h1 class="text-xl font-bold font-mono tracking-tight text-slate-100">
+        AIRPORT CONGESTION & OPERATIONAL THROUGHPUT
+      </h1>
+      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950/60 text-purple-400 border border-purple-500/30">
+        DERIVED OPERATIONAL PROXY
+      </span>
+    </div>
+    <p class="text-xs text-slate-400 font-mono mt-1">
+      Airport runway load factors, rolling operations density, Ground Delay Program status, and average taxi-out delays.
+    </p>
+  </div>
+
+  <div class="flex items-center gap-4">
+    <div class="text-xs font-mono text-slate-400">
+      Monitoring {{ airports|length }} Airspace Hubs
+    </div>
+    <form method="get" class="flex items-center gap-2 font-mono text-xs">
+      <input
+        type="text"
+        name="hub"
+        value="{% if selected %}{{ selected.airport }}{% elif request.query_params.hub %}{{ request.query_params.hub }}{% endif %}"
+        class="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
+        placeholder="e.g. ORD"
+      />
+      <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-semibold">
+        <i data-lucide="search" class="w-[18px] h-[18px]"></i>
+        SEARCH
+      </button>
+    </form>
+  </div>
+</div>
+
+{% if selected %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+      <div>
+        <div class="flex items-center gap-3">
+          <h2 class="text-2xl font-bold font-mono text-slate-100">
+            {{ selected.airport }} — {{ selected.name }}
+          </h2>
+          <span
+            class="text-xs px-2 py-0.5 rounded font-mono font-bold
+            {% if selected.congestion_band == 'Severe' %}
+              bg-rose-950/60 text-rose-400 border border-rose-800/40
+            {% elif selected.congestion_band == 'High' %}
+              bg-purple-950/60 text-purple-400 border border-purple-800/40
+            {% else %}
+              bg-cyan-950/60 text-cyan-400 border border-cyan-800/40
+            {% endif %}"
+          >
+            BAND: {{ selected.congestion_band }}
+          </span>
+        </div>
+        <div class="text-xs font-mono text-slate-400 mt-1">
+          Trend: {{ selected.trend|upper }} · GDP:
+          {% if selected.ground_delay_program %}
+            <span class="text-rose-400 font-bold">ACTIVE IN EFFECT</span>
+          {% else %}
+            <span class="text-emerald-400">NONE</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="text-right font-mono">
+        <span class="text-xs text-slate-400">DERIVED CONGESTION INDEX</span>
+        <div class="text-2xl font-bold text-purple-400">
+          {{ selected.derived_congestion_index }}
+          <span class="text-xs font-normal text-slate-500">/ 100</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+      <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+        <div class="text-[10px] text-slate-400">HOURLY DEPARTURES</div>
+        <div class="text-xl font-bold text-slate-100">{{ selected.hourly_departures }}</div>
+      </div>
+      <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+        <div class="text-[10px] text-slate-400">HOURLY ARRIVALS</div>
+        <div class="text-xl font-bold text-slate-100">{{ selected.hourly_arrivals }}</div>
+      </div>
+      <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+        <div class="text-[10px] text-slate-400">RUNWAY CAPACITY LOAD</div>
+        <div class="text-xl font-bold text-purple-400">{{ (selected.load_factor * 100)|round(0, 'floor') }}%</div>
+      </div>
+      <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+        <div class="text-[10px] text-slate-400">AVG TAXI-OUT</div>
+        <div class="text-xl font-bold text-amber-400">{{ selected.avg_taxi_out_min }}m</div>
+      </div>
+    </div>
+
+    <div class="space-y-1.5 font-mono text-xs">
+      <div class="flex justify-between text-slate-400">
+        <span>Runway Hourly Movements vs Declared Capacity</span>
+        <span>{{ selected.total_operations }} / {{ selected.runway_capacity }} ops</span>
+      </div>
+      <div class="w-full h-2.5 rounded bg-slate-900 overflow-hidden border border-slate-800">
+        <div
+          class="h-full transition-all
+          {% if selected.load_factor > 0.9 %}bg-rose-500
+          {% elif selected.load_factor > 0.75 %}bg-purple-500
+          {% else %}bg-cyan-500{% endif %}"
+          style="width: {{ [100, (selected.load_factor * 100)] | min }}%"
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-5 font-mono text-xs space-y-3">
+    <div class="flex items-center gap-2 pb-2 border-b border-slate-800 text-slate-200">
+      <i data-lucide="info" class="w-[18px] h-[18px] text-cyan-400"></i>
+      <h3 class="font-bold text-xs uppercase">Methodology Disclosure</h3>
+    </div>
+    <p class="text-slate-400 leading-relaxed text-[11px]">
+      AeroRoute AI does <strong>not</strong> simulate live gate-occupancy telemetry or physical camera feeds.
+    </p>
+    <p class="text-slate-400 leading-relaxed text-[11px]">
+      The <em>Derived Congestion Index</em> is computed from:
+    </p>
+    <ul class="text-slate-300 text-[11px] space-y-1 list-disc list-inside">
+      <li>Scheduled hourly flight movements (BTS)</li>
+      <li>Engineered FAA runway acceptance capacity</li>
+      <li>Rolling departure/arrival imbalance queue length</li>
+      <li>Reported taxi-out delay time proxies</li>
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+  <h3 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200">
+    RANKED AIRPORT THROUGHPUT & CONGESTION LEADERBOARD
+  </h3>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left font-mono text-xs">
+      <thead>
+        <tr class="text-slate-500 border-b border-slate-800">
+          <th class="py-2">HUB</th>
+          <th class="py-2">NAME</th>
+          <th class="py-2">DEPARTURES</th>
+          <th class="py-2">ARRIVALS</th>
+          <th class="py-2">CAPACITY LOAD</th>
+          <th class="py-2">AVG TAXI</th>
+          <th class="py-2">GDP STATUS</th>
+          <th class="py-2">CONGESTION INDEX</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800">
+        {% for a in airports %}
+        <tr
+          class="transition-colors {% if selected and a.airport == selected.airport %}bg-cyan-950/50 text-slate-100{% else %}hover:bg-slate-900/40 text-slate-300{% endif %}"
+        >
+          <td class="py-2.5 font-bold text-slate-200">
+            <a href="/app/congestion?hub={{ a.airport }}" class="hover:underline">{{ a.airport }}</a>
+          </td>
+          <td class="py-2.5 text-slate-400">{{ a.name }}</td>
+          <td class="py-2.5 text-slate-300">{{ a.hourly_departures }}</td>
+          <td class="py-2.5 text-slate-300">{{ a.hourly_arrivals }}</td>
+          <td class="py-2.5 text-slate-300">{{ (a.load_factor * 100)|round(0, 'floor') }}%</td>
+          <td class="py-2.5 text-slate-300">{{ a.avg_taxi_out_min }}m</td>
+          <td class="py-2.5">
+            {% if a.ground_delay_program %}
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-400 border border-rose-800/40">
+                GDP ACTIVE
+              </span>
+            {% else %}
+              <span class="text-slate-500 text-[11px]">Normal</span>
+            {% endif %}
+          </td>
+          <td class="py-2.5 font-bold text-purple-400">
+            {{ a.derived_congestion_index }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if summary %}
+<div class="bg-[#0c121d] border border-slate-800 rounded p-4 space-y-2 font-mono text-xs">
+  <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">CONGESTION SUMMARY</h3>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+      <div class="text-[10px] text-slate-400">TOTAL MONITORED HUBS</div>
+      <div class="text-xl font-bold text-slate-100">{{ summary.total_monitored_hubs }}</div>
+    </div>
+    <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+      <div class="text-[10px] text-slate-400">AVERAGE NAS LOAD %</div>
+      <div class="text-xl font-bold text-purple-400">{{ summary.average_nas_load_pct }}%</div>
+    </div>
+    <div class="bg-slate-900/70 border border-slate-800 p-3 rounded">
+      <div class="text-[10px] text-slate-400">HIGHEST CONGESTION HUB</div>
+      <div class="text-xl font-bold text-slate-100">{{ summary.highest_congestion_hub }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+  if (window.lucide) lucide.createIcons();
+</script>
+{% endblock %}

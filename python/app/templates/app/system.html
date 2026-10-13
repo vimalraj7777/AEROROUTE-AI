@@ -1,0 +1,255 @@
+{% extends 'base_app.html' %}
+{% block content %}
+{% if health.system_status == 'OPERATIONAL' %}
+{% set banner_classes = 'bg-emerald-950/20 border-emerald-800/40 text-emerald-300' %}
+{% set banner_icon = 'check-circle-2' %}
+{% set banner_icon_color = 'text-emerald-400' %}
+{% elif health.system_status == 'DEGRADED' %}
+{% set banner_classes = 'bg-amber-950/20 border-amber-800/40 text-amber-300' %}
+{% set banner_icon = 'alert-triangle' %}
+{% set banner_icon_color = 'text-amber-400' %}
+{% else %}
+{% set banner_classes = 'bg-red-950/20 border-red-800/40 text-red-300' %}
+{% set banner_icon = 'alert-triangle' %}
+{% set banner_icon_color = 'text-red-400' %}
+{% endif %}
+{% set uptime = health.uptime_seconds or 0 %}
+{% set uptime_h = (uptime // 3600) %}
+{% set uptime_m = ((uptime % 3600) // 60) %}
+{% set uptime_s = (uptime % 60) %}
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+  <div>
+    <div class="flex items-center gap-2">
+      <h1 class="text-xl font-bold font-mono tracking-tight text-slate-100">
+        SYSTEM HEALTH &amp; OBSERVABILITY
+      </h1>
+      <span class="text-[10px] font-mono px-2 py-0.5 rounded {% if health.system_status == 'OPERATIONAL' %}bg-emerald-950/60 text-emerald-400 border border-emerald-500/30{% else %}bg-amber-950/60 text-amber-400 border border-amber-500/30{% endif %}">
+        {{ health.system_status }}
+      </span>
+    </div>
+    <p class="text-xs text-slate-400 font-mono mt-1">
+      Backend status and the bundled datasets and engines currently loaded by this demo.
+    </p>
+  </div>
+
+  <button
+    id="poll-status"
+    class="flex items-center gap-2 px-3.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-mono text-xs transition-colors cursor-pointer"
+  >
+    <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-cyan-400"></i>
+    <span>POLL STATUS</span>
+  </button>
+</div>
+
+<div class="p-4 rounded border font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 {{ banner_classes }}">
+  <div class="flex items-center gap-2 font-bold">
+    <i data-lucide="{{ banner_icon }}" class="w-4 h-4 {{ banner_icon_color }}"></i>
+    <span id="health-status">{{ health.system_status }}</span>
+  </div>
+  <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-[11px]">
+    <span class="flex items-center gap-1.5">
+      <i data-lucide="clock" class="w-4 h-4 {{ banner_icon_color }}"></i>
+      <span>Uptime: <span id="health-uptime">{{ uptime_h }}h {{ uptime_m }}m {{ uptime_s }}s</span></span>
+    </span>
+    <span class="text-slate-400">Last checked: <span id="health-timestamp">{{ health.timestamp }}</span></span>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 font-mono text-xs">
+  {% for name, subsys in health.subsystems.items() %}
+  {% if name == 'backend_api' %}
+  {% set subsys_icon = 'server' %}
+  {% set subsys_icon_color = 'text-cyan-400' %}
+  {% elif name == 'local_dataset_store' %}
+  {% set subsys_icon = 'database' %}
+  {% set subsys_icon_color = 'text-sky-400' %}
+  {% elif name == 'bts_flight_dataset' %}
+  {% set subsys_icon = 'activity' %}
+  {% set subsys_icon_color = 'text-purple-400' %}
+  {% elif name == 'metar_snapshot' %}
+  {% set subsys_icon = 'cloud-rain' %}
+  {% set subsys_icon_color = 'text-amber-400' %}
+  {% elif name == 'delay_scoring_engine' %}
+  {% set subsys_icon = 'cpu' %}
+  {% set subsys_icon_color = 'text-cyan-400' %}
+  {% elif name == 'graph_routing_engine' %}
+  {% set subsys_icon = 'network' %}
+  {% set subsys_icon_color = 'text-emerald-400' %}
+  {% else %}
+  {% set subsys_icon = 'server' %}
+  {% set subsys_icon_color = 'text-cyan-400' %}
+  {% endif %}
+  <div class="bg-[#0c121d] border border-slate-800 p-4 rounded space-y-2">
+    <div class="flex justify-between items-center text-slate-400">
+      <span class="flex items-center gap-1.5">
+        <i data-lucide="{{ subsys_icon }}" class="w-4 h-4 {{ subsys_icon_color }}"></i> {{ name|replace('_', ' ')|title }}
+      </span>
+      <span class="{% if subsys.status == 'OPERATIONAL' %}text-emerald-400{% elif subsys.status == 'DEGRADED' %}text-amber-400{% else %}text-red-400{% endif %} font-bold">{{ subsys.status }}</span>
+    </div>
+    {% for key, value in subsys.items() %}
+    {% if key != 'status' %}
+    <div class="text-[11px] text-slate-500">
+      <span class="text-slate-400">{{ key|replace('_', ' ')|title }}:</span>
+      <span class="text-slate-300">{{ value }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+    <div class="flex items-center gap-2">
+      <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
+      <h3 class="text-xs font-bold font-mono uppercase tracking-wider text-slate-200">
+        Structured Operations Log Stream
+      </h3>
+    </div>
+
+    <div class="flex items-center gap-2 text-xs font-mono">
+      <span class="text-slate-400">FILTER LEVEL:</span>
+      <select
+        id="log-filter"
+        class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200"
+      >
+        <option value="ALL">ALL LEVELS</option>
+        <option value="INFO">INFO</option>
+        <option value="WARN">WARN</option>
+        <option value="ERROR">ERROR</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="log-stream" class="bg-slate-950/90 rounded border border-slate-800 p-3 h-72 overflow-y-auto font-mono text-xs space-y-2">
+    {% if logs and logs|length > 0 %}
+    {% for log in logs %}
+    <div class="flex items-start gap-2 text-[11px] leading-relaxed">
+      <span class="text-slate-600 shrink-0">{{ log.timestamp[11:19] }}</span>
+      <span class="px-1 rounded text-[10px] font-bold shrink-0 {% if log.level == 'INFO' %}bg-sky-950/80 text-sky-400 border border-sky-800/40{% elif log.level == 'WARN' %}bg-amber-950/80 text-amber-400 border border-amber-800/40{% else %}bg-rose-950/80 text-rose-400 border border-rose-800/40{% endif %}">
+        {{ log.level }}
+      </span>
+      <span class="text-slate-500 shrink-0">[{{ log.subsystem }}]</span>
+      <span class="text-slate-300">{{ log.message }}</span>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="text-xs text-slate-500 font-mono py-4">No log entries available.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="p-4 bg-amber-950/20 border border-amber-800/40 rounded font-mono text-xs text-amber-300 space-y-2">
+  <div class="flex items-center gap-2 font-bold">
+    <i data-lucide="shield-alert" class="w-4 h-4 text-amber-400"></i>
+    <span>ACADEMIC SAFETY &amp; CERTIFICATION NOTICE</span>
+  </div>
+  <p class="text-[11px] leading-relaxed text-amber-200/80">
+    AeroRoute AI is an academic decision-support prototype. It does not provide certified air-traffic-control authorization, tactical safety clearance, or autonomous flight guidance. All route recommendations and delay forecasts are intended solely for academic demonstration and research benchmarking.
+  </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const logList = document.getElementById('log-stream');
+    const filterSelect = document.getElementById('log-filter');
+    const pollButton = document.getElementById('poll-status');
+    if (!logList) return;
+
+    const levelClasses = {
+      INFO: 'bg-sky-950/80 text-sky-400 border border-sky-800/40',
+      WARN: 'bg-amber-950/80 text-amber-400 border border-amber-800/40',
+      ERROR: 'bg-rose-950/80 text-rose-400 border border-rose-800/40',
+    };
+
+    function formatUptime(total) {
+      total = Math.max(0, Math.floor(total || 0));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      return h + 'h ' + m + 'm ' + s + 's';
+    }
+
+    function renderLogs(logs) {
+      logList.innerHTML = '';
+      if (!logs || logs.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'text-xs text-slate-500 font-mono py-4';
+        empty.textContent = 'No log entries available.';
+        logList.appendChild(empty);
+        return;
+      }
+      logs.forEach(function (log) {
+        const row = document.createElement('div');
+        row.className = 'flex items-start gap-2 text-[11px] leading-relaxed';
+
+        const time = document.createElement('span');
+        time.className = 'text-slate-600 shrink-0';
+        time.textContent = new Date(log.timestamp).toLocaleTimeString();
+
+        const level = document.createElement('span');
+        level.className = 'px-1 rounded text-[10px] font-bold shrink-0 ' + (levelClasses[log.level] || levelClasses.INFO);
+        level.textContent = log.level;
+
+        const subsystem = document.createElement('span');
+        subsystem.className = 'text-slate-500 shrink-0';
+        subsystem.textContent = '[' + log.subsystem + ']';
+
+        const message = document.createElement('span');
+        message.className = 'text-slate-300';
+        message.textContent = log.message;
+
+        row.appendChild(time);
+        row.appendChild(level);
+        row.appendChild(subsystem);
+        row.appendChild(message);
+        logList.appendChild(row);
+      });
+    }
+
+    async function refreshLogs() {
+      try {
+        const level = filterSelect && filterSelect.value !== 'ALL' ? '&level=' + encodeURIComponent(filterSelect.value) : '';
+        const res = await fetch('/api/system/logs?limit=40' + level);
+        if (!res.ok) return;
+        const data = await res.json();
+        renderLogs(data.logs || []);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function refreshHealth() {
+      try {
+        const res = await fetch('/api/system/health');
+        if (!res.ok) return;
+        const health = await res.json();
+        const statusEl = document.getElementById('health-status');
+        if (statusEl) statusEl.textContent = health.system_status;
+        const uptimeEl = document.getElementById('health-uptime');
+        if (uptimeEl) uptimeEl.textContent = formatUptime(health.uptime_seconds);
+        const timestampEl = document.getElementById('health-timestamp');
+        if (timestampEl) timestampEl.textContent = health.timestamp;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    setInterval(refreshLogs, 5000);
+
+    if (filterSelect) {
+      filterSelect.addEventListener('change', refreshLogs);
+    }
+
+    if (pollButton) {
+      pollButton.addEventListener('click', function () {
+        refreshLogs();
+        refreshHealth();
+      });
+    }
+  });
+</script>
+{% endblock %}

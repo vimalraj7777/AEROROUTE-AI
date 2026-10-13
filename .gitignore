@@ -1,0 +1,25 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+data/processed/kaggle_flight_sample.json
+data/processed/kaggle_flight_summary.json
+
+# Large raw datasets (multi-GB; re-download via scripts/README instructions)
+data/raw/flights/*.csv
+data/raw/weather/*.csv
+
+# Redundant binary model artifacts (runtime uses the JSON exports)
+models/*.joblib
+
+# ML feature cache
+*.parquet
+
+# Python caches
+__pycache__/
+*.pyc
+.pytest_cache/

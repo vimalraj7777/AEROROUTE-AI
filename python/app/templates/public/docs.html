@@ -1,0 +1,249 @@
+{% extends 'base_public.html' %}
+
+{% block title %}Documentation · {{ app_name }}{% endblock %}
+
+{% block content %}
+{% set nav = [
+  ('overview', 'Overview'),
+  ('architecture', 'Architecture'),
+  ('algorithms', 'Algorithms'),
+  ('data-sources', 'Data Sources'),
+  ('api', 'API Reference'),
+  ('limitations', 'Limitations')
+] %}
+{% set endpoints = [
+  ('GET', '/api/health', 'System status, version and academic disclaimer.'),
+  ('GET', '/api/airports', 'Bundled airport locations and derived risk fields.'),
+  ('GET', '/api/weather/summary', 'METAR observations, categories and average risk.'),
+  ('GET', '/api/weather/:code', 'Single station observation.'),
+  ('GET', '/api/weather/risk/:code', 'Derived risk breakdown for a station.'),
+  ('GET', '/api/congestion/summary', 'Ranked airport congestion and runway load factors.'),
+  ('GET', '/api/congestion/:code', 'One airport congestion proxy.'),
+  ('GET', '/api/flights', 'Search bundled flight records.'),
+  ('GET', '/api/flights/:id', 'Flight detail with environmental context.'),
+  ('GET', '/api/network/graph', 'Nodes and directed corridor edges used by routing.'),
+  ('POST', '/api/routes/optimize', 'Multi-objective path via Dijkstra, A* or both.'),
+  ('GET', '/api/model/metrics', 'Bundled model-metric artifacts.'),
+  ('POST', '/api/model/predict', 'Deterministic delay-risk scoring with attributions.'),
+  ('GET', '/api/analytics/summary', 'Aggregated flight-delay and carrier summaries.'),
+  ('GET', '/api/system/health', 'Loaded subsystem state.'),
+  ('GET', '/api/system/logs', 'In-memory structured log stream.')
+] %}
+<div>
+  <section class="relative border-b border-white/5">
+    <div class="absolute inset-0 aurora opacity-60"></div>
+    <div class="absolute inset-0 grid-overlay"></div>
+    <div class="relative mx-auto max-w-7xl px-5 sm:px-8 py-16 lg:py-20">
+      <div class="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/5 px-3.5 py-1.5 text-xs font-medium text-cyan-300">
+        <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Documentation
+      </div>
+      <h1 class="mt-6 text-4xl sm:text-5xl font-bold tracking-tight">Methodology &amp; reference</h1>
+      <p class="mt-5 text-slate-400 max-w-2xl leading-relaxed">
+        How the bundled decision-support engine works — from data ingestion to route
+        recommendation, scoring and observability.
+      </p>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-7xl px-5 sm:px-8 py-14 grid lg:grid-cols-[220px_1fr] gap-12">
+    <aside class="hidden lg:block">
+      <div class="sticky top-24 space-y-1">
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 px-3 mb-2">
+          On this page
+        </div>
+        {% for id, label in nav %}
+        <a
+          href="#{{ id }}"
+          class="block px-3 py-2 rounded-lg text-sm transition-colors {% if id == 'overview' %}text-cyan-300 bg-white/5{% else %}text-slate-400 hover:text-cyan-300 hover:bg-white/5{% endif %}"
+        >
+          {{ label }}
+        </a>
+        {% endfor %}
+        <a
+          href="/app/dashboard"
+          class="mt-4 flex items-center justify-center gap-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition-colors"
+        >
+          Launch Console <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </aside>
+
+    <div class="space-y-16 min-w-0">
+      <section id="overview" class="scroll-mt-24">
+        <div class="reveal">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-300">
+              <i data-lucide="book-open" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight text-slate-100">Overview</h2>
+          </div>
+          <div class="mt-5 space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              AeroRoute AI is an academic aviation operations-intelligence and route-optimization
+              decision-support prototype. It models a small airport network as a weighted directed
+              graph, computes paths with custom <strong class="text-slate-200">Dijkstra</strong> and
+              <strong class="text-slate-200">A*</strong> search, and estimates delay categories with a
+              deterministic scoring demonstration.
+            </p>
+            <p>
+              The console exposes each stage as a dedicated module backed by a REST endpoint, so every
+              recommendation can be traced back to its inputs.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="architecture" class="scroll-mt-24">
+        <div class="reveal">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-300">
+              <i data-lucide="git-branch" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight text-slate-100">Architecture</h2>
+          </div>
+          <div class="mt-5 space-y-4 text-slate-400 leading-relaxed">
+            <p>The end-to-end pipeline runs entirely from bundled local snapshots:</p>
+            <pre class="rounded-2xl border border-white/8 bg-[#0a0f1a]/70 p-5 overflow-x-auto text-[12px] leading-relaxed text-slate-300 font-mono">
+[ BTS On-Time Data ] ─┐
+[ NOAA METAR Data  ] ─┼─> [ Ingestion ] ─> [ Feature Engineering ]
+[ FAA Airport Hubs ] ─┘                          │
+                                                 ▼
+                     [ Airspace Network Graph ]  [ Delay Scoring ]
+                                 │                       │
+                                 ▼                       ▼
+                     [ Dijkstra & A* Engines ] <─ [ Multi-Objective Weights ]
+                                 │
+                                 ▼
+                     [ Route Recommendation Engine ]
+                                 │
+                                 ▼
+                     [ Full-Stack REST API ] -> [ Operations Console ]</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="algorithms" class="scroll-mt-24">
+        <div class="reveal">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-300">
+              <i data-lucide="git-branch" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight text-slate-100">Algorithms &amp; Cost Model</h2>
+          </div>
+          <div class="mt-5 space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              The router optimizes edge cost over the graph, where each component is normalized before
+              weighting:
+            </p>
+            <pre class="rounded-2xl border border-white/8 bg-[#0a0f1a]/70 p-5 overflow-x-auto text-[12px] leading-relaxed text-cyan-200 font-mono">
+C(e) = w_d·(D/2500) + w_t·(T/300) + w_w·(W/100) + w_c·(C/100) + w_r·R</pre>
+            <ul class="space-y-3">
+              <li class="flex gap-3">
+                <span class="text-cyan-400 font-semibold shrink-0">Dijkstra</span>
+                Exhaustive min-priority search yielding a mathematically optimal cost.
+              </li>
+              <li class="flex gap-3">
+                <span class="text-cyan-400 font-semibold shrink-0">A*</span>
+                Admissible Haversine great-circle heuristic producing identical optimal paths with
+                substantially fewer explored nodes.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="data-sources" class="scroll-mt-24">
+        <div class="reveal">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-300">
+              <i data-lucide="database" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight text-slate-100">Data Sources</h2>
+          </div>
+          <div class="mt-5 space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              All datasets are bundled snapshots loaded into memory at startup — the application does
+              not poll live upstream providers.
+            </p>
+            <div class="grid sm:grid-cols-3 gap-4">
+              {% set sources = [
+                ('U.S. DOT BTS', 'Historical on-time flight records and delay causes.'),
+                ('NOAA METAR', 'Stored routine weather observations.'),
+                ('FAA Reference', 'Airport hub coordinates, elevations and capacities.')
+              ] %}
+              {% for t, d in sources %}
+              <div class="rounded-2xl border border-white/8 bg-white/[0.02] p-5">
+                <div class="font-semibold text-slate-100">{{ t }}</div>
+                <div class="mt-1.5 text-sm text-slate-400">{{ d }}</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="api" class="scroll-mt-24">
+        <div class="reveal">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-300">
+              <i data-lucide="server" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight text-slate-100">API Reference</h2>
+          </div>
+          <div class="mt-5 space-y-4 text-slate-400 leading-relaxed">
+            <p>Frontend calls are centralized in <code class="text-cyan-300">src/api.ts</code>. Key endpoints:</p>
+            <div class="overflow-x-auto rounded-2xl border border-white/8">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="text-slate-500 border-b border-white/8">
+                    <th class="py-3 px-4 font-medium">Method</th>
+                    <th class="py-3 px-4 font-medium">Path</th>
+                    <th class="py-3 px-4 font-medium">Description</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                  {% for method, path, desc in endpoints %}
+                  <tr class="hover:bg-white/[0.02]">
+                    <td class="py-2.5 px-4">
+                      <span
+                        class="text-[10px] font-mono px-1.5 py-0.5 rounded {% if method == 'GET' %}bg-cyan-500/10 text-cyan-300{% else %}bg-violet-500/10 text-violet-300{% endif %}"
+                      >
+                        {{ method }}
+                      </span>
+                    </td>
+                    <td class="py-2.5 px-4 font-mono text-[12px] text-slate-300">{{ path }}</td>
+                    <td class="py-2.5 px-4 text-slate-400">{{ desc }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="limitations" class="scroll-mt-24">
+        <div class="reveal">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-300">
+              <i data-lucide="shield-alert" class="w-5 h-5"></i>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight text-slate-100">Limitations &amp; Safety</h2>
+          </div>
+          <div class="mt-5 space-y-4 text-slate-400 leading-relaxed">
+            <div class="rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-5 text-amber-200/90">
+              <p class="text-sm leading-relaxed">
+                This is <strong>not certified aviation software</strong>. It holds no ATC authority,
+                flight-dispatch clearance or avionics guarantees, and must never be used for real
+                dispatch or navigation. Congestion telemetry is derived mathematically, weather is
+                limited to METAR observations, and the prediction endpoint uses deterministic scoring
+                rather than a loaded trained model.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

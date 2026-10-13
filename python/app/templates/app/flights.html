@@ -1,0 +1,308 @@
+{% extends 'base_app.html' %}
+
+{% block content %}
+{% macro fmt_time(t) %}{% if t %}{% set s = '%04d' | format(t) %}{{ s[:2] }}:{{ s[2:4] }}{% else %}--:--{% endif %}{% endmacro %}
+{% macro severity_label(c) %}{% if c is not none and c >= 3 %}SEVERE{% elif c == 2 %}MODERATE{% elif c == 1 %}MINOR{% else %}NONE{% endif %}{% endmacro %}
+
+{% set parts = [] %}
+{% if filters.carrier %}{% set _ = parts.append('carrier=' ~ filters.carrier) %}{% endif %}
+{% if filters.origin %}{% set _ = parts.append('origin=' ~ filters.origin) %}{% endif %}
+{% if filters.dest %}{% set _ = parts.append('dest=' ~ filters.dest) %}{% endif %}
+{% if filters.status %}{% set _ = parts.append('status=' ~ filters.status) %}{% endif %}
+{% set filter_qs = parts | join('&') %}
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+  <div>
+    <div class="flex items-center gap-2">
+      <h1 class="text-xl font-bold font-mono tracking-tight text-slate-100">
+        FLIGHT OPERATIONS INTELLIGENCE
+      </h1>
+      <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-400 border border-cyan-500/30">
+        BUNDLED HISTORICAL FLIGHT RECORDS
+      </span>
+    </div>
+    <p class="text-xs text-slate-400 font-mono mt-1">
+      Bundled flight records with stored weather context and a deterministic delay-risk scoring demonstration.
+    </p>
+  </div>
+
+  <div class="text-xs font-mono text-slate-400">
+    Showing {{ flights | length }} matched records · {{ total_count }} total flights
+  </div>
+</div>
+
+<form method="get" action="/app/flights"
+      class="bg-[#0c121d] border border-slate-800 rounded p-3 flex flex-wrap items-center gap-3">
+  <div class="flex items-center gap-2 text-xs font-mono text-slate-400 shrink-0">
+    <i data-lucide="filter" class="w-3.5 h-3.5 text-cyan-400"></i>
+    <span>FILTERS:</span>
+  </div>
+
+  <select name="carrier"
+          class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500">
+    <option value="">All Carriers</option>
+    {% for c in carriers %}
+    <option value="{{ c }}" {% if filters.carrier == c %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="origin"
+          class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500">
+    <option value="">All Origins</option>
+    {% for a in airports %}
+    <option value="{{ a.iata }}" {% if filters.origin == a.iata %}selected{% endif %}>{{ a.iata }} — {{ a.city }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="dest"
+          class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500">
+    <option value="">All Destinations</option>
+    {% for a in airports %}
+    <option value="{{ a.iata }}" {% if filters.dest == a.iata %}selected{% endif %}>{{ a.iata }} — {{ a.city }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="status"
+          class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500">
+    <option value="">All Statuses</option>
+    {% for s in statuses %}
+    <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s.replace('_', ' ') }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit"
+          class="rounded bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-mono font-semibold text-xs px-3 py-1 flex items-center gap-1.5 transition-colors">
+    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+    <span>Filter</span>
+  </button>
+
+  {% if filters.carrier or filters.origin or filters.dest or filters.status %}
+  <a href="/app/flights" class="text-xs font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1">
+    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+    <span>Reset</span>
+  </a>
+  {% endif %}
+</form>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 bg-[#0c121d] border border-slate-800 rounded p-4 space-y-3">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left font-mono text-xs">
+        <thead>
+          <tr class="text-slate-500 border-b border-slate-800">
+            <th class="py-2 px-2">FLIGHT</th>
+            <th class="py-2 px-2">DATE</th>
+            <th class="py-2 px-2">ROUTE</th>
+            <th class="py-2 px-2">SCHED DEP</th>
+            <th class="py-2 px-2">ACT DEP</th>
+            <th class="py-2 px-2">DEP DELAY</th>
+            <th class="py-2 px-2">ARR DELAY</th>
+            <th class="py-2 px-2">STATUS</th>
+            <th class="py-2 px-2">SEVERITY</th>
+            <th class="py-2 px-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800">
+          {% for f in flights %}
+          {% set row_href = '/app/flights?' ~ filter_qs ~ ('&' if filter_qs else '') ~ 'record_id=' ~ f.record_id %}
+          <tr onclick="window.location.href='{{ row_href }}'"
+              class="cursor-pointer transition-colors {% if selected and selected.record_id == f.record_id %}bg-cyan-950/50 border-l-2 border-cyan-400 text-slate-100{% else %}hover:bg-slate-900/50 text-slate-300{% endif %}">
+            <td class="py-2.5 px-2 font-bold">
+              <div class="flex items-center gap-1.5">
+                <span class="text-cyan-400">{{ f.carrier }}</span>
+                <span>{{ f.flight_num }}</span>
+              </div>
+              <div class="text-[10px] text-slate-500 font-normal">{{ f.carrier_name }}</div>
+            </td>
+            <td class="py-2.5 px-2 text-slate-400">{{ f.fl_date }}</td>
+            <td class="py-2.5 px-2">{{ f.origin }} &rarr; {{ f.dest }}</td>
+            <td class="py-2.5 px-2 text-slate-400">{{ fmt_time(f.crs_dep_time) }}</td>
+            <td class="py-2.5 px-2 text-slate-400">{{ fmt_time(f.dep_time) }}</td>
+            <td class="py-2.5 px-2 {% if f.dep_delay > 0 %}text-amber-400{% else %}text-emerald-400{% endif %}">
+              {% if f.dep_delay > 0 %}+{{ f.dep_delay }}m{% else %}{{ f.dep_delay }}m{% endif %}
+            </td>
+            <td class="py-2.5 px-2">
+              {% if f.cancelled == 1 %}
+              <span class="text-rose-400">CAN</span>
+              {% elif f.arr_delay <= 0 %}
+              <span class="text-emerald-400">{{ f.arr_delay }}m</span>
+              {% elif f.arr_delay <= 15 %}
+              <span class="text-sky-400">+{{ f.arr_delay }}m</span>
+              {% elif f.arr_delay <= 45 %}
+              <span class="text-amber-400">+{{ f.arr_delay }}m</span>
+              {% else %}
+              <span class="text-rose-400 font-bold">+{{ f.arr_delay }}m</span>
+              {% endif %}
+            </td>
+            <td class="py-2.5 px-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded font-mono {% if f.status == 'ON_TIME' %}bg-emerald-950/60 text-emerald-400 border border-emerald-800/40{% elif f.status == 'MINOR_DELAY' %}bg-sky-950/60 text-sky-400 border border-sky-800/40{% elif f.status == 'MODERATE_DELAY' %}bg-amber-950/60 text-amber-400 border border-amber-800/40{% else %}bg-rose-950/60 text-rose-400 border border-rose-800/40{% endif %}">
+                {{ f.status.replace('_', ' ') }}
+              </span>
+            </td>
+            <td class="py-2.5 px-2">
+              <span class="text-[10px] {% if f.delay_severity_class is not none and f.delay_severity_class >= 3 %}text-rose-400{% elif f.delay_severity_class == 2 %}text-amber-400{% elif f.delay_severity_class == 1 %}text-sky-400{% else %}text-emerald-400{% endif %}">
+                {{ severity_label(f.delay_severity_class) }}
+              </span>
+            </td>
+            <td class="py-2.5 px-2 text-slate-500">
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="10" class="py-8 px-2 text-center text-slate-500 font-mono">
+              <div class="flex flex-col items-center gap-2">
+                <i data-lucide="search" class="w-5 h-5 text-slate-600"></i>
+                <span>No flights match the current filters.</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if selected %}
+  <div class="bg-[#0c121d] border border-slate-800 rounded p-5 space-y-4">
+    <div class="pb-3 border-b border-slate-800">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="plane" class="w-4 h-4 text-cyan-400"></i>
+          <h3 class="text-base font-bold font-mono text-slate-100">
+            {{ selected.carrier_name }} {{ selected.flight_num }}
+          </h3>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] font-mono text-slate-400">{{ selected.fl_date }}</span>
+          <a href="/app/flights{% if filter_qs %}?{{ filter_qs }}{% endif %}"
+             class="text-slate-500 hover:text-slate-300 transition-colors">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </a>
+        </div>
+      </div>
+      <div class="text-xs font-mono text-cyan-400 mt-1">
+        {{ selected.origin }} &rarr; {{ selected.dest }} · {{ selected.distance }} NM
+      </div>
+    </div>
+
+    {% set max_delay = [selected.carrier_delay, selected.weather_delay, selected.nas_delay, selected.late_aircraft_delay] | max %}
+    {% set weather_pct = ((selected.weather_delay / max_delay * 100) | round(1)) if max_delay else 0 %}
+    {% set nas_pct = ((selected.nas_delay / max_delay * 100) | round(1)) if max_delay else 0 %}
+    {% set carrier_pct = ((selected.carrier_delay / max_delay * 100) | round(1)) if max_delay else 0 %}
+    {% set late_pct = ((selected.late_aircraft_delay / max_delay * 100) | round(1)) if max_delay else 0 %}
+    <div class="space-y-2">
+      <div class="text-xs font-mono font-bold text-slate-300">
+        DELAY ATTRIBUTION DECOMPOSITION
+      </div>
+      <div class="space-y-2.5">
+        <div>
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-500">
+            <span>WEATHER DELAY</span>
+            <span class="text-amber-400 font-bold">{{ selected.weather_delay }} min</span>
+          </div>
+          <div class="h-1.5 w-full bg-slate-800 rounded mt-1 overflow-hidden">
+            <div class="h-1.5 bg-amber-400 rounded" style="width: {{ weather_pct }}%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-500">
+            <span>NAS / AIRSPACE DELAY</span>
+            <span class="text-purple-400 font-bold">{{ selected.nas_delay }} min</span>
+          </div>
+          <div class="h-1.5 w-full bg-slate-800 rounded mt-1 overflow-hidden">
+            <div class="h-1.5 bg-purple-400 rounded" style="width: {{ nas_pct }}%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-500">
+            <span>CARRIER DELAY</span>
+            <span class="text-cyan-400 font-bold">{{ selected.carrier_delay }} min</span>
+          </div>
+          <div class="h-1.5 w-full bg-slate-800 rounded mt-1 overflow-hidden">
+            <div class="h-1.5 bg-cyan-400 rounded" style="width: {{ carrier_pct }}%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-500">
+            <span>LATE AIRCRAFT DELAY</span>
+            <span class="text-rose-400 font-bold">{{ selected.late_aircraft_delay }} min</span>
+          </div>
+          <div class="h-1.5 w-full bg-slate-800 rounded mt-1 overflow-hidden">
+            <div class="h-1.5 bg-rose-400 rounded" style="width: {{ late_pct }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-2 pt-2 border-t border-slate-800 font-mono text-xs">
+      <div class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+        <i data-lucide="cloud-rain" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span>ENVIRONMENTAL CONTEXT</span>
+      </div>
+
+      {% if detail_context and detail_context.origin_weather %}
+      <div class="bg-slate-900/50 p-2 rounded border border-slate-800/80">
+        <div class="flex justify-between text-[11px]">
+          <span class="font-bold text-slate-200">ORIGIN {{ detail_context.origin_weather.station }}</span>
+          <span class="text-cyan-400">
+            {{ detail_context.origin_weather.flight_category }} (Risk {{ detail_context.origin_weather.composite_risk_score }})
+          </span>
+        </div>
+        <div class="text-[10px] text-slate-400 mt-1 truncate">
+          {{ detail_context.origin_weather.raw_metar }}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if detail_context and detail_context.dest_weather %}
+      <div class="bg-slate-900/50 p-2 rounded border border-slate-800/80">
+        <div class="flex justify-between text-[11px]">
+          <span class="font-bold text-slate-200">DEST {{ detail_context.dest_weather.station }}</span>
+          <span class="text-cyan-400">
+            {{ detail_context.dest_weather.flight_category }} (Risk {{ detail_context.dest_weather.composite_risk_score }})
+          </span>
+        </div>
+        <div class="text-[10px] text-slate-400 mt-1 truncate">
+          {{ detail_context.dest_weather.raw_metar }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if detail_context and detail_context.origin_activity %}
+    <div class="bg-slate-900/50 p-3 rounded border border-slate-800/80 font-mono text-xs space-y-1.5">
+      <div class="flex items-center gap-1.5 text-purple-400 font-bold">
+        <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
+        <span>ORIGIN CONGESTION · {{ detail_context.origin_activity.airport }}</span>
+      </div>
+      <div class="flex justify-between text-[11px]">
+        <span class="text-slate-400">Derived Congestion Index</span>
+        <span class="text-purple-400 font-bold">{{ detail_context.origin_activity.derived_congestion_index }}%</span>
+      </div>
+      <div class="flex justify-between text-[11px]">
+        <span class="text-slate-400">Congestion Band</span>
+        <span class="text-slate-200">{{ detail_context.origin_activity.congestion_band }}</span>
+      </div>
+      <div class="flex justify-between text-[11px]">
+        <span class="text-slate-400">Ground Delay Program</span>
+        <span class="{% if detail_context.origin_activity.ground_delay_program %}text-rose-400{% else %}text-emerald-400{% endif %}">
+          {{ 'ACTIVE' if detail_context.origin_activity.ground_delay_program else 'NONE' }}
+        </span>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="p-3 bg-cyan-950/20 border border-cyan-800/40 rounded font-mono text-xs space-y-1.5">
+      <div class="flex items-center gap-1.5 text-cyan-400 font-bold">
+        <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+        <span>STORED FLIGHT STATUS</span>
+      </div>
+      <p class="text-[11px] text-slate-300 leading-relaxed">
+        This bundled flight record is marked <strong class="text-cyan-300">{{ selected.status }}</strong>. It is a historical status, not a new model prediction.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

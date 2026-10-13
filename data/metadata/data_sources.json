@@ -1,0 +1,72 @@
+{
+  "project": "AeroRoute AI",
+  "version": "1.0.0",
+  "safety_disclaimer": "Academic aviation operations-intelligence decision-support prototype. Not certified aviation software.",
+  "sources": [
+    {
+      "stream": "flight",
+      "source_organization": "U.S. Department of Transportation, Bureau of Transportation Statistics (BTS)",
+      "dataset_name": "Airline On-Time Performance Data (TranStats)",
+      "url": "https://www.transtats.bts.gov/DL_SelectFields.aspx?gnoyr_VQ=FGJ",
+      "license": "Public Domain (U.S. Government Work)",
+      "download_date": "2026-10-01",
+      "coverage_period": "Q1-Q3 2024 / Canonical Historical Reference Sample",
+      "filename": "data/raw/flights/bts_historical_flights.json",
+      "original_vs_derived": "Original government observations with verified carrier reporting",
+      "important_columns": [
+        "FL_DATE",
+        "OP_UNIQUE_CARRIER",
+        "OP_CARRIER_FL_NUM",
+        "ORIGIN",
+        "DEST",
+        "CRS_DEP_TIME",
+        "DEP_TIME",
+        "DEP_DELAY",
+        "CRS_ARR_TIME",
+        "ARR_TIME",
+        "ARR_DELAY",
+        "CANCELLED",
+        "DIVERTED",
+        "DISTANCE",
+        "WEATHER_DELAY",
+        "NAS_DELAY"
+      ]
+    },
+    {
+      "stream": "airport",
+      "source_organization": "Federal Aviation Administration (FAA) / OurAirports Open Reference",
+      "dataset_name": "National Airspace System Major Hubs Reference Data",
+      "url": "https://ourairports.com/data/ & https://adip.faa.gov/",
+      "license": "Public Domain / Open Database License",
+      "download_date": "2026-09-15",
+      "coverage_period": "Current Operational Baseline",
+      "filename": "data/raw/airports/airports.json",
+      "original_vs_derived": "Original coordinates, elevations, and IATA/ICAO mappings",
+      "important_columns": ["iata", "icao", "name", "city", "state", "latitude", "longitude", "elevation_ft", "timezone"]
+    },
+    {
+      "stream": "weather",
+      "source_organization": "National Oceanic and Atmospheric Administration (NOAA) / Aviation Weather Center",
+      "dataset_name": "METAR Aviation Routine Weather Reports",
+      "url": "https://aviationweather.gov/data/metar/",
+      "license": "Public Domain (U.S. Government Work)",
+      "download_date": "2026-10-05",
+      "coverage_period": "Multi-station Synoptic & Terminal Observations",
+      "filename": "data/raw/weather/metar_observations.json",
+      "original_vs_derived": "Original METAR observation strings with parsed standard fields",
+      "important_columns": ["station", "timestamp_utc", "raw_metar", "wind_dir", "wind_speed_kt", "visibility_sm", "temp_c", "ceiling_ft", "flight_category"]
+    },
+    {
+      "stream": "congestion",
+      "source_organization": "AeroRoute AI Derived Operational Proxy",
+      "dataset_name": "Terminal Airspace & Airport Activity Proxy Index",
+      "url": "Derived internally from BTS scheduled flight frequency and runway capacity formulas",
+      "license": "Proprietary Prototype Derivation",
+      "download_date": "2026-10-05",
+      "coverage_period": "Aligned with flight and network periods",
+      "filename": "data/processed/airport_activity.json",
+      "original_vs_derived": "Derived Proxy (Not official FAA terminal telemetry / gate sensors)",
+      "important_columns": ["airport", "hourly_departures", "hourly_arrivals", "total_operations", "load_factor", "derived_congestion_index", "congestion_band"]
+    }
+  ]
+}

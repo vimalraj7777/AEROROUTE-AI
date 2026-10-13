@@ -1,0 +1,179 @@
+# AeroRoute AI — Aviation Operations & Route Intelligence
+
+> **Academic Aviation Decision-Support Prototype**  
+> *Demonstrates graph-based Dijkstra / A\* route optimization and delay-risk scoring using bundled historical flight, weather, airport, and congestion data snapshots.*
+
+---
+
+## 1. Problem Statement
+Commercial airline flight dispatch and airspace planning require balancing multiple competing operational objectives:
+- **Minimizing route distance and a derived fuel proxy**
+- **Accounting for bundled weather-risk observations**
+- **Mitigating gate-hold and taxi-out delays at congested hub airspaces**
+- **Minimizing historical delay risk**
+
+Traditional flight planning often evaluates these dimensions in isolation. **AeroRoute AI** demonstrates an explainable decision-support engine that models a small airport network as a weighted directed graph, calculates paths using custom **Dijkstra** and **A\*** search, and estimates delay categories with a trained **XGBoost + Random Forest** ensemble whose predicted delay risk also feeds the routing cost function.
+
+---
+
+## 2. Architecture & Pipeline
+```
+[ BTS On-Time Data ] ────┐
+[ NOAA METAR Data  ] ────┼──> [ Ingestion & Cleaning ] ──> [ Feature Engineering ]
+[ FAA Airport Hubs ] ────┘             │                                │
+                                       ▼                                ▼
+                          [ Airspace Network Graph ]         [ Delay ML Model ]
+                                       │                                │
+                                       ▼                                ▼
+                          [ Dijkstra & A* Engines ] ◄── [ Multi-Objective Weights ]
+                                       │
+                                       ▼
+                       [ Route Recommendation Engine ]
+                                       │
+                                       ▼
+                          [ Full-Stack REST API ]
+                                       │
+                                       ▼
+                     [ Tactical Command Center Frontend ]
+```
+
+---
+
+## 3. Technology Stack
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, Lucide Icons, Leaflet (interactive maps), Recharts (operational charts), Motion (animated public site).
+- **Backend**: Express + TypeScript services, custom Dijkstra and A* pathfinding, and local JSON snapshots loaded in memory.
+- **Delay scoring**: A real XGBoost gradient-boosted classifier plus a Random Forest alternate, trained in Python (`scripts/train_delay_model.py`) and executed in-process by the Node backend from portable JSON. See `docs/model-card.md` for held-out metrics.
+- **Data Sources**: Bundled historical/sample files attributed to U.S. DOT BTS, NOAA METAR, FAA, and airport reference data. They are not live API feeds.
+
+---
+
+## 4. Directory Structure
+```
+├── backend/                  # Backend services, graph engine, ML inference & logger
+│   ├── types.ts              # Data models & schemas
+│   ├── dataService.ts        # Data cache & retrieval layer
+│   ├── routingEngine.ts      # Custom Dijkstra & A* engines
+│   ├── mlEngine.ts           # Trained XGBoost + Random Forest inference & edge risk
+│   └── logger.ts             # Structured log stream
+├── data/
+│   ├── raw/
+│   │   ├── flights/          # BTS historical on-time records
+│   │   ├── airports/         # FAA hub coordinates & elevations
+│   │   └── weather/          # NOAA METAR observation strings
+│   ├── processed/            # Derived congestion & network graph
+│   └── metadata/             # data_sources.json provenance metadata
+├── docs/                     # System architecture, data reports, model card & QA
+├── models/                   # Exported tree ensembles, metrics, schema & lookups
+├── scripts/                  # Model training + data download/inspection scripts
+├── src/                      # React frontend (public site + operations console)
+│   ├── layouts/              # PublicLayout (site) & AppLayout (console shell)
+│   ├── components/           # Console Navbar, Sidebar, LeafletMap
+│   │   └── public/           # PublicNavbar, PublicFooter, Reveal
+│   ├── pages/                # 9 console views + public/ marketing pages
+│   │   └── public/           # Landing, Features, Docs, About
+│   └── types.ts              # Frontend TypeScript definitions
+├── tests/                    # Unit tests for Dijkstra, A*, and heuristics
+├── server.ts                 # Full-stack Express server
+└── package.json
+```
+
+### Site structure & routes
+The app is split into a public marketing/documentation website and the operations console.
+
+| Public site | Route | Console | Route |
+| --- | --- | --- | --- |
+| Landing | `/` | Dashboard | `/app/dashboard` |
+| Features | `/features` | Route Optimizer | `/app/routes` |
+| Docs | `/docs` | Flight Intel | `/app/flights` |
+| About | `/about` | Network / Weather / Congestion | `/app/network`, `/app/weather`, `/app/congestion` |
+| | | Analytics / Model / System | `/app/analytics`, `/app/model`, `/app/system` |
+
+Legacy paths (e.g. `/dashboard`) redirect to their `/app/...` equivalents.
+
+---
+
+## 5. Developer Setup & PowerShell Instructions
+
+### Prerequisites
+- Node.js (v20.19+ or v22.12+, as required by Vite 8)
+- Python (v3.10+)
+
+### Setup on Windows (PowerShell)
+```powershell
+# 1. Install Node dependencies
+npm install
+
+# 2. Inspect ingested datasets
+python scripts/inspect_datasets.py
+
+# 3. Execute algorithm unit tests
+python tests/test_algorithms.py
+
+# 4. Train the delay-severity models (XGBoost + Random Forest)
+#    Requires: pip install xgboost scikit-learn pandas numpy joblib
+python scripts/train_delay_model.py
+
+# 5. Start Full-Stack Dev Server (Port 3000)
+npm run dev
+```
+
+### Setup on Linux / macOS (Bash)
+```bash
+npm install
+python3 scripts/inspect_datasets.py
+python3 tests/test_algorithms.py
+python3 scripts/train_delay_model.py   # XGBoost + Random Forest (pip install xgboost scikit-learn pandas numpy joblib)
+npm run dev
+```
+
+The application will run on **http://localhost:3000** — the public landing page is at `/` and the operations console is at `/app/dashboard`. To use a different port, set `PORT` before starting, e.g. `$env:PORT=3001; npm run dev` (PowerShell) or `PORT=3001 npm run dev` (Bash).
+
+### Importing the Kaggle airline-delay dataset
+The project can use Kaggle's [Airline Delay Analysis dataset](https://www.kaggle.com/datasets/sherrytp/airline-delay-analysis). Its Kaggle page currently lists 12 CSV files covering 2009–2019 and 8.7 GB total. Download and extract those CSVs to a local folder, then run:
+
+```powershell
+python scripts/import_kaggle_flights.py "C:\path\to\extracted\airline-delay-analysis"
+```
+
+The importer streams the CSV files, computes analytics over all valid records, and saves a deterministic sample of up to 20,000 flight rows for interactive search. Kaggle data is disabled by default so the application uses the bundled demo records. To opt in after importing, set `AEROROUTE_USE_KAGGLE_DATA=true` in the server environment and restart the app. These generated files are excluded from Git. The extractor does not need a Kaggle API key when you download through the Kaggle website; Kaggle CLI credentials are separate from Gemini credentials.
+
+### API keys and live data
+No API key is required to run the current demo. The app reads its flight, airport, weather, congestion, graph, and model-metric data from the bundled `data/` and `models/` JSON files. It does not currently call Gemini, BTS, FAA, or NOAA APIs, and the displayed observations do not refresh from those providers.
+
+The map tiles are requested from OpenStreetMap over the internet and are shown with attribution; no map API key is required. If you later integrate a provider that requires credentials, put them in a root-level `.env` file (copy `.env.example` as a starting point) and read them only from server-side code. `server.ts` loads `.env`; do not put secret keys in `src/` or variables prefixed with `VITE_`, which are exposed to the browser. The `GEMINI_API_KEY` entry is an empty placeholder for a future integration.
+
+Frontend API calls are centralized in `src/api.ts`; the matching Express endpoints are in `server.ts`. Add external provider calls in backend code and expose only the data the frontend needs through an `/api/...` endpoint.
+
+---
+
+## 6. Multi-Objective Cost Formulation
+The routing engine optimizes edge cost $C(e)$ over the graph:
+
+$$C(e) = w_d \cdot \left(\frac{D_e}{2500}\right) + w_t \cdot \left(\frac{T_e}{300}\right) + w_w \cdot \left(\frac{W_e}{100}\right) + w_c \cdot \left(\frac{C_e}{100}\right) + w_r \cdot R_e$$
+
+- **Dijkstra**: Exhaustive min-priority search yielding mathematically optimal cost.
+- **A\* Search**: Uses admissible Haversine great-circle distance heuristic:
+  $$h(n) = \text{HaversineNM}(n, \text{Dest}) \times \min\left(\frac{\text{Cost}}{\text{NM}}\right)$$
+  Yields identical optimal paths with up to 50%+ reduction in explored nodes.
+
+---
+
+## 7. API Endpoints
+- `GET /api/health` — System status, application name, version, and academic disclaimer.
+- `GET /api/airports` — Bundled airport locations and derived risk fields.
+- `GET /api/weather/summary` — Bundled METAR observations and flight categories.
+- `GET /api/weather/:code` and `GET /api/weather/risk/:code` — Station observation and risk breakdown.
+- `GET /api/congestion/summary` — Ranked airport congestion and runway load factors.
+- `GET /api/congestion/:code` — One airport's congestion proxy.
+- `GET /api/flights` and `GET /api/flights/:id` — Search bundled flight records and retrieve a flight's context.
+- `GET /api/network/graph` — Nodes and directed corridor edges used by routing.
+- `POST /api/routes/optimize` — Computes a multi-objective path with Dijkstra, A*, or both; accepts origin, destination, algorithm, and weights.
+- `GET /api/model/metrics` and `GET /api/model/schema` — Trained-model metrics and feature-schema artifacts.
+- `POST /api/model/predict` — Runs the trained delay-severity model and returns class probabilities, expected delay minutes, a delay-risk score, and feature attributions.
+- `GET /api/analytics/summary` — Aggregated flight-delay and carrier summaries.
+- `GET /api/system/health` and `GET /api/system/logs` — Loaded subsystem state and in-memory logs.
+
+---
+
+## 8. Academic Safety & Non-Operational Disclaimer
+> **IMPORTANT**: AeroRoute AI is strictly an **academic decision-support prototype**. It is **NOT certified aviation software**. It does not possess air-traffic-control (ATC) authority, operational flight-dispatch clearance, or certified avionics guarantees. All generated paths, risk indices, and predictions are decision-support estimates for research and educational purposes.
