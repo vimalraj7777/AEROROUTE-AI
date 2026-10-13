@@ -128,8 +128,6 @@ export class MLEngine {
     try {
       this.registry = readJson('model_registry.json');
       this.lookup = readJson('feature_lookup.json');
-      this.xgb = readJson('xgboost_model.json');
-      this.rf = readJson('random_forest_model.json');
 
       if (this.registry) {
         this.activeModel = this.registry.active_model === 'random_forest' ? 'random_forest' : 'xgboost';
@@ -140,6 +138,15 @@ export class MLEngine {
             label: c.label,
           }));
         }
+      }
+
+      // The active model is XGBoost in the shipped registry, so the (much
+      // larger) Random Forest export is loaded only when selected or when
+      // AEROROUTE_LOAD_ALL_MODELS=true, keeping cold starts small.
+      const loadAllModels = process.env.AEROROUTE_LOAD_ALL_MODELS === 'true';
+      this.xgb = readJson('xgboost_model.json');
+      if (this.activeModel === 'random_forest' || loadAllModels) {
+        this.rf = readJson('random_forest_model.json');
       }
 
       if (this.activeModel === 'random_forest' && !this.rf && this.xgb) this.activeModel = 'xgboost';

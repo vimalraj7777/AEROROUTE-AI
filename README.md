@@ -148,6 +148,24 @@ The map tiles are requested from OpenStreetMap over the internet and are shown w
 
 Frontend API calls are centralized in `src/api.ts`; the matching Express endpoints are in `server.ts`. Add external provider calls in backend code and expose only the data the frontend needs through an `/api/...` endpoint.
 
+### Deploying to Vercel
+The repository is Vercel-ready: the Vite frontend is built to static files and the Express API runs as a single Node serverless function.
+
+- `api/[...slug].ts` exports the shared Express app (`backend/app.ts`) as the serverless handler.
+- `vercel.json` builds with `npm run build`, serves `dist/`, routes non-API paths to the SPA, and bundles `data/**` and `models/**` into the function via `includeFiles`.
+- `.vercelignore` drops the Python app, raw multi-GB CSVs, and redundant `.joblib` artifacts.
+- `server.ts` is only used for local `npm run dev`; Vercel uses the function entry. The Random Forest export is no longer loaded at startup unless active (set `AEROROUTE_LOAD_ALL_MODELS=true` to force it), which keeps function cold starts small.
+
+Deploy with the Vercel CLI (run from the project root):
+
+```bash
+npm i -g vercel
+vercel login
+vercel --prod
+```
+
+Or import the GitHub repo at vercel.com/new. The framework preset is detected as Vite. Note the ML model is loaded lazily on cold start; the first request after idle may take a few seconds. If the model bundle exceeds your plan's function limits or the 60s `maxDuration` on Hobby, upgrade to Pro or drop the Random Forest export.
+
 ---
 
 ## 6. Multi-Objective Cost Formulation
@@ -169,7 +187,7 @@ $$C(e) = w_d \cdot \left(\frac{D_e}{2500}\right) + w_t \cdot \left(\frac{T_e}{30
 - `GET /api/weather/:code` and `GET /api/weather/risk/:code` — Station observation and risk breakdown.
 - `GET /api/congestion/summary` — Ranked airport congestion and runway load factors.
 - `GET /api/congestion/:code` — One airport's congestion proxy.
-- `GET /api/flights` and `GET /api/flights/:id` — Search bundled flight records and retrieve a flight's context.
+- `GET /api/flights` and `GET /api/flights/:id` — Search the full flight dataset (`?limit=&offset=&carrier=&origin=&dest=&status=`) and retrieve a flight's context.
 - `GET /api/network/graph` — Nodes and directed corridor edges used by routing.
 - `POST /api/routes/optimize` — Computes a multi-objective path with Dijkstra, A*, or both; accepts origin, destination, algorithm, and weights.
 - `GET /api/model/metrics` and `GET /api/model/schema` — Trained-model metrics and feature-schema artifacts.
